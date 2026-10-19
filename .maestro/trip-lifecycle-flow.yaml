@@ -1,0 +1,82 @@
+appId: com.ryde.capital
+---
+# ====================================================================
+# Ryde Capital Phase 4 - End-to-End Trip Lifecycle & Navigation Flow
+# ====================================================================
+# Prerequisites:
+# 1. Ryde Capital driver mobile app running on emulator or physical device.
+# 2. Simulator generating customer booking & accepting ride offer:
+#      npm run simulator -- book --pickup "12.9300,77.6200" --drop "12.9700,77.6400"
+# ====================================================================
+
+- launchApp:
+    clearState: false
+
+# 1. Verify driver is on the active trip navigation screen
+- assertVisible:
+    text: ".*(Pickup & Verification|On Trip to Destination|Trip Completed).*"
+
+# --- Step A: Heading to Pickup & Google Maps Handoff ---
+- assertVisible: "Pickup & Verification"
+- assertVisible: "🧭 Navigate to Pickup in Google Maps"
+
+# Test Google Maps handoff and return to app
+- tapOn: "🧭 Navigate to Pickup in Google Maps"
+- delay: 2000
+
+# Bring Ryde Capital back to foreground and check welcome-back banner
+- launchApp
+- assertVisible: "👋 Welcome back to Ryde Capital"
+
+# --- Step B: Driver Arrives at Pickup Geofence ---
+- tapOn: "📍 I've Arrived at Pickup"
+- assertVisible: "⏱️ Waiting at Pickup"
+- assertVisible: "Enter Customer Trip Start OTP"
+
+# --- Step C: Verify Customer OTP ---
+# In live simulation, retrieve OTP via:
+#   npm run simulator -- otp <trip_id>
+- tapOn: "0 0 0 0 0 0"
+- inputText: "123456"
+- tapOn: "✅ Verify OTP & Proceed"
+
+# --- Step D: Pre-Trip Vehicle Handover Inspection ---
+- assertVisible: "📸 Customer Vehicle Handover"
+- tapOn: "e.g. 45200.5"
+- inputText: "45200.5"
+
+# Capture all 6 mandatory photo inspection angles
+- tapOn: "FRONT"
+- tapOn: "BACK"
+- tapOn: "LEFT"
+- tapOn: "RIGHT"
+- tapOn: "ODOMETER"
+- tapOn: "FUEL GAUGE"
+
+- tapOn: "Complete Vehicle Handover"
+
+# --- Step E: Start Journey ---
+- assertVisible: "🚀 START JOURNEY"
+- tapOn: "🚀 START JOURNEY"
+
+# --- Step F: In Progress Navigation Screen ---
+- assertVisible: "On Trip to Destination"
+- assertVisible: "🧭 Navigate to Drop in Google Maps"
+- assertVisible: "🚨 SOS"
+- assertVisible: "🔗 Share Trip"
+- assertVisible: "🏁 Complete & End Trip"
+
+# --- Step G: End Trip & Return Inspection ---
+- tapOn: "🏁 Complete & End Trip"
+- assertVisible: "Return Vehicle Handover"
+- tapOn: "e.g. 45030.5"
+- inputText: "45212.8"
+- tapOn: "Confirm & End Trip"
+
+# --- Step H: Completed Trip & Itemized Fare Summary ---
+- assertVisible: "🎉 Trip Completed Successfully"
+- assertVisible: "Base Fare"
+- assertVisible: "Distance Charge"
+- assertVisible: "Time Charge"
+- assertVisible: "Go Online / Next Trip"
+- tapOn: "Go Online / Next Trip"

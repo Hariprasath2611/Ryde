@@ -374,6 +374,13 @@ export interface Database {
           final_fare: number | null;
           started_at: string | null;
           ended_at: string | null;
+          waiting_started_at: string | null;
+          waiting_duration_s: number | null;
+          estimated_distance_m: number | null;
+          estimated_duration_s: number | null;
+          audit_required: boolean | null;
+          early_drop_reason: string | null;
+          cancellation_reason: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -389,6 +396,13 @@ export interface Database {
           final_fare?: number | null;
           started_at?: string | null;
           ended_at?: string | null;
+          waiting_started_at?: string | null;
+          waiting_duration_s?: number | null;
+          estimated_distance_m?: number | null;
+          estimated_duration_s?: number | null;
+          audit_required?: boolean | null;
+          early_drop_reason?: string | null;
+          cancellation_reason?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -539,6 +553,69 @@ export interface Database {
           total_amount?: number;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      fare_rules: {
+        Row: {
+          id: string;
+          vehicle_type: VehicleType;
+          base_fare: number;
+          base_distance_km: number;
+          per_km_rate: number;
+          per_minute_rate: number;
+          free_waiting_minutes: number;
+          waiting_charge_per_minute: number;
+          platform_fee_percent: number;
+          tax_percent: number;
+          minimum_fare: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          vehicle_type: VehicleType;
+          base_fare: number;
+          base_distance_km?: number;
+          per_km_rate: number;
+          per_minute_rate: number;
+          free_waiting_minutes?: number;
+          waiting_charge_per_minute: number;
+          platform_fee_percent?: number;
+          tax_percent?: number;
+          minimum_fare: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      trip_otp_outbox: {
+        Row: {
+          id: string;
+          trip_id: string;
+          raw_otp: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          trip_id: string;
+          raw_otp: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      idempotency_keys: {
+        Row: {
+          key: string;
+          response_status: number;
+          response_body: Json;
+          created_at: string;
+        };
+        Insert: {
+          key: string;
+          response_status: number;
+          response_body: Json;
+          created_at?: string;
         };
         Relationships: [];
       };

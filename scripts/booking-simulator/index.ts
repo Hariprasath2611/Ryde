@@ -275,6 +275,150 @@ export async function listStatus() {
 }
 
 /**
+ * Reads the latest unexpired trip OTP from the dev outbox for a trip.
+ */
+export async function readTripOtp(tripId: string): Promise<string | null> {
+  const { data: outboxRows, error } = await supabase
+    .from('trip_otp_outbox')
+    .select('*')
+    .eq('trip_id', tripId)
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (error || !outboxRows || outboxRows.length === 0) {
+    console.error(`❌ No OTP found in outbox for trip ${tripId}`);
+    return null;
+  }
+
+  const latest = outboxRows[0]!;
+  const isExpired = new Date(latest.expires_at).getTime() < Date.now();
+  console.log(`\n🔑 TRIP OTP FOR ${tripId}: [ ${latest.otp_code} ]`);
+  console.log(`   Generated At: ${new Date(latest.created_at).toLocaleTimeString()}`);
+  console.log(`   Expires At:   ${new Date(latest.expires_at).toLocaleTimeString()} ${isExpired ? '(EXPIRED)' : '(VALID)'}\n`);
+
+  return latest.otp_code;
+}
+
+/**
+ * Cancels a trip as the customer.
+ */
+export async function cancelTripAsCustomer(tripId: string, reason = 'Customer cancelled from simulator'): Promise<void> {
+  const { data: trip, error: fetchErr } = await supabase
+    .from('trips')
+    .select('id, driver_id, booking_id, trip_status')
+    .eq('id', tripId)
+    .single();
+
+  if (fetchErr || !trip) {
+    console.error(`❌ Trip ${tripId} not found`);
+    return;
+  }
+
+  // Update trip
+  const { error: tripErr } = await supabase
+    .from('trips')
+    .update({
+      trip_status: 'cancelled_by_customer',
+      cancellation_reason: reason,
+      ended_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', tripId);
+
+  if (tripErr) {
+    console.error('❌ Failed to cancel trip:', tripErr);
+    return;
+  }
+
+  // Free driver back to online
+  await supabase
+    .from('drivers')
+    .update({
+      availability_status: 'online',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', trip.driver_id);
+
+  // Cancel booking
+  await supabase
+    .from('bookings')
+    .update({
+      booking_status: 'cancelled',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', trip.booking_id);
+
+  console.log(`✅ Trip ${tripId} cancelled by customer. Driver ${trip.driver_id} reset to ONLINE.`);
+}
+
+/**
+ * Shows comprehensive trip state, handover details, and fare breakdown.
+ */
+export async function showTripStatus(tripId: string): Promise<void> {
+  const { data: trip, error } = await supabase
+    .from('trips')
+    .select(`
+      *,
+      booking:bookings(*),
+      vehicle:vehicles(*),
+      driver:drivers(driver_code, user_id)
+    `)
+    .eq('id', tripId)
+    .single();
+
+  if (error || !trip) {
+    console.error(`❌ Trip ${tripId} not found`);
+    return;
+  }
+
+  const { data: handover } = await supabase
+    .from('vehicle_handovers')
+    .select('*')
+    .eq('trip_id', tripId)
+    .maybeSingle();
+
+  const { data: fare } = await supabase
+    .from('fares')
+    .select('*')
+    .eq('trip_id', tripId)
+    .maybeSingle();
+
+  const d = trip.driver as unknown as { driver_code?: string } | null;
+  const v = trip.vehicle as unknown as { make?: string; model?: string; license_plate?: string } | null;
+  const b = trip.booking as unknown as { pickup_address?: string; destination_address?: string } | null;
+
+  console.log(`\n================== TRIP ${tripId} ==================`);
+  console.log(`Status:              ${trip.trip_status.toUpperCase()}`);
+  console.log(`Driver Code:         ${d?.driver_code || trip.driver_id}`);
+  console.log(`Vehicle:             ${v?.make} ${v?.model} (${v?.license_plate})`);
+  console.log(`Pickup Address:      ${b?.pickup_address}`);
+  console.log(`Destination Address: ${b?.destination_address}`);
+  if (trip.waiting_started_at) {
+    console.log(`Waiting Started:     ${new Date(trip.waiting_started_at).toLocaleTimeString()}`);
+    console.log(`Waiting Duration:    ${trip.waiting_duration_s || 0} seconds`);
+  }
+  if (handover) {
+    console.log('\n--- VEHICLE HANDOVER ---');
+    console.log(`Odometer Before:     ${handover.odometer_before || 'N/A'} km`);
+    console.log(`Odometer After:      ${handover.odometer_after || 'N/A'} km`);
+    console.log(`Fuel Level Before:   ${handover.fuel_level_before || 'N/A'}%`);
+    console.log(`Fuel Level After:    ${handover.fuel_level_after || 'N/A'}%`);
+    console.log(`Damage Notes:        ${handover.existing_damage_notes || 'None'}`);
+  }
+  if (fare) {
+    console.log('\n--- FARE BREAKDOWN ---');
+    console.log(`Base Fare:           ₹${fare.base_fare}`);
+    console.log(`Distance Charge:     ₹${fare.distance_charge}`);
+    console.log(`Time Charge:         ₹${fare.time_charge}`);
+    console.log(`Waiting Charge:      ₹${fare.waiting_charge}`);
+    console.log(`Platform Fee:        ₹${fare.platform_fee}`);
+    console.log(`GST / Tax:           ₹${fare.tax}`);
+    console.log(`TOTAL FARE:          ₹${fare.total_amount}`);
+  }
+  console.log('====================================================\n');
+}
+
+/**
  * CLI parser and execution runner.
  */
 async function main() {
@@ -358,6 +502,47 @@ async function main() {
       break;
     }
 
+    case 'otp': {
+      let tripId = args[1];
+      for (let i = 1; i < args.length; i++) {
+        if (args[i] === '--trip' && args[i + 1]) tripId = args[++i]!;
+      }
+      if (!tripId) {
+        console.error('Usage: otp <trip_id> OR otp --trip <trip_id>');
+        process.exit(1);
+      }
+      await readTripOtp(tripId);
+      break;
+    }
+
+    case 'cancel-trip': {
+      let tripId = args[1];
+      let reason = 'Customer cancelled from simulator';
+      for (let i = 1; i < args.length; i++) {
+        if (args[i] === '--trip' && args[i + 1]) tripId = args[++i]!;
+        if (args[i] === '--reason' && args[i + 1]) reason = args[++i]!;
+      }
+      if (!tripId) {
+        console.error('Usage: cancel-trip --trip <trip_id> [--reason <text>]');
+        process.exit(1);
+      }
+      await cancelTripAsCustomer(tripId, reason);
+      break;
+    }
+
+    case 'trip-status': {
+      let tripId = args[1];
+      for (let i = 1; i < args.length; i++) {
+        if (args[i] === '--trip' && args[i + 1]) tripId = args[++i]!;
+      }
+      if (!tripId) {
+        console.error('Usage: trip-status <trip_id> OR trip-status --trip <trip_id>');
+        process.exit(1);
+      }
+      await showTripStatus(tripId);
+      break;
+    }
+
     case 'status':
     case 'list': {
       await listStatus();
@@ -367,7 +552,7 @@ async function main() {
     case 'help':
     default: {
       console.log(`
-Ryde Platform - Booking Simulator CLI (Phase 3)
+Ryde Platform - Booking & Trip Simulator CLI (Phase 4)
 
 Commands:
   create           Create a searching booking near a location or driver
@@ -387,13 +572,23 @@ Commands:
 
   cancel <id>      Cancel a pending or searching booking by ID
 
-  list / status    Display recent bookings and their active/expired assignment offers
+  otp <trip_id>    Read the latest unexpired trip OTP from the dev outbox
+
+  cancel-trip      Cancel an active trip as the customer
+                   Options:
+                     --trip <trip_id>         Target trip ID
+                     --reason <text>          Cancellation reason
+
+  trip-status      Display comprehensive state of a trip, handover, and fare
+                   Options:
+                     --trip <trip_id>         Target trip ID
+
+  list / status    Display recent bookings and active offers
 
 Examples:
-  npx tsx scripts/booking-simulator/index.ts create --near-driver DRV-1001
-  npx tsx scripts/booking-simulator/index.ts create --lat 12.9716 --lng 77.5946 --vehicle four_wheeler
-  npx tsx scripts/booking-simulator/index.ts repeat --interval 20 --count 5
-  npx tsx scripts/booking-simulator/index.ts status
+  npx tsx scripts/booking-simulator/index.ts otp --trip <TRIP_UUID>
+  npx tsx scripts/booking-simulator/index.ts trip-status --trip <TRIP_UUID>
+  npx tsx scripts/booking-simulator/index.ts cancel-trip --trip <TRIP_UUID> --reason "Changed plans"
       `);
       break;
     }

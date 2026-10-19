@@ -13,7 +13,10 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Ryde Capital requires your location to navigate to pickup locations and track active customer trips.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Ryde Capital requires background location to match you with nearby customer ride offers even when the app is in background.",
-        "UIBackgroundModes": ["location", "fetch"]
+        "UIBackgroundModes": [
+          "location",
+          "fetch"
+        ]
       },
       "config": {
         "googleMapsApiKey": "AIzaSy_MOCK_RESTRICTED_IOS_MAPS_KEY_FOR_DEV"
@@ -63,7 +66,8 @@
           "locationAlwaysAndWhenInUsePermission": "Allow Ryde Capital to use your location to receive ride offers and navigate customer trips.",
           "isAndroidForegroundServiceEnabled": true
         }
-      ]
+      ],
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true,

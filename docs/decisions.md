@@ -168,10 +168,66 @@ This document records the foundational technical and architectural decisions for
 
 ---
 
-### Phase 3 Assumptions
+---
 
-1. **Google Maps API Cost Optimization**: Google APIs are called strictly server-side for routing and ETAs with an aggressive 15-minute LRU cache. In-flight GPS breadcrumbs are persisted directly in Postgres PostGIS, keeping per-ping telemetry cost at $0.
-2. **Realtime CDC Delivery**: Supabase Realtime broadcasts on `driver_assignments` filter events by `driver_id=eq.{driverId}`, relying on Row-Level Security to prevent cross-driver offer snooping.
-3. **Offer Timeout Defaults**: The offer countdown defaults to 20 seconds. If neither accepted nor rejected, the matching engine marks the offer `expired` on its next tick and cascades to the next nearest candidate.
-4. **Simulator-Driven Dispatch**: Because the customer app is not yet deployed, all booking generation is driven by the CLI booking simulator (`scripts/booking-simulator`), which provisions bookings with status `searching` in proximity to online drivers.
+## ADR 011: Trip Lifecycle, State Machine, Geofencing, OTP Handover, Dynamic Fare Calculation, and Navigation Handoff
+
+- **Status**: Accepted
+- **Context**: Phase 4 completes the full driver trip lifecycle in Ryde Capital: heading to pickup, arrival detection, start OTP verification, pre-trip vehicle handover inspection with photo evidence, in-progress driving with Google Maps handoff, return inspection, distance/fare calculation with GPS trail noise filtering, and mock payment settlement.
+- **Decision**:
+  1. **Canonical Trip State Machine**:
+     - State transitions: `assigned` -> `heading_to_pickup` -> `arrived` -> `otp_verified` -> `handover_done` -> `in_progress` -> `completed`, alongside terminal cancellation states: `cancelled_by_driver`, `cancelled_by_customer`, `cancelled_by_system`.
+     - Single transition table (`TRIP_TRANSITION_TABLE`) governs all state mutations.
+     - Concurrency protection: All state mutations acquire row-level locks (`SELECT ... FOR UPDATE`) inside atomic PostgreSQL transactions.
+     - Out-of-order calls are strictly rejected with HTTP 409 Conflict, returning descriptive error payloads listing the current state and allowed transitions.
+     - State-modifying endpoints support an optional `Idempotency-Key` header; executed operations are cached in `idempotency_keys` with SHA-256 hashed keys, allowing safe network retries without duplicate mutations.
+  2. **Arrival Geofencing & Waiting Charges**:
+     - Server-side arrival verification requires the driver's last known location to be within 150 meters (configurable) of the customer's pickup coordinates via PostGIS `ST_DWithin` / Haversine.
+     - Marking arrival sets `waiting_started_at` to begin tracking customer waiting time.
+     - Background sweeping job (`staleWaitingTripCheck`) checks every 60 seconds and auto-cancels trips where the driver has been waiting beyond the allowed customer window (e.g., 15 minutes) with status `cancelled_by_system`.
+  3. **Start OTP Protocol & Dev Outbox Security**:
+     - Trip start requires customer verification via a cryptographically random 6-digit OTP.
+     - The backend stores ONLY a salted SHA-256 hash (`rawOtp:tripId`) in `trip_otps`; plaintext OTPs are never persisted in core tables or output in application logs.
+     - For local development and test automation, the plaintext OTP is delivered exclusively to `trip_otp_outbox`, where the simulator (`scripts/booking-simulator otp <tripId>`) can read it.
+     - OTP expires in 10 minutes, has a 60-second regeneration cooldown, and enforces a maximum of 5 attempts before permanent lockout.
+     - Verification uses `crypto.timingSafeEqual` against the salted hash to prevent side-channel timing attacks.
+  4. **Pre-Trip & Return Handover Inspection**:
+     - Vehicle handover is permitted only after OTP verification (`otp_verified`).
+     - Requires odometer reading, fuel level (0-100%), optional damage notes, and all 6 mandatory photo angles (`front`, `back`, `left`, `right`, `odometer`, `fuel_gauge`).
+     - Photo metadata and storage paths are tracked in `handover_photos`.
+     - Return vehicle handover at trip completion verifies `odometer_after` >= `odometer_before`, records return fuel level, and accepts return inspection photos.
+  5. **Destination Geofence & GPS Trail Distance Filtering**:
+     - Trip completion requires the driver to be within 200 meters of the destination.
+     - If ended outside 200m, an `earlyDropReason` is mandatory, and the trip is flagged with `audit_required = true` for manual operational review.
+     - Final distance is computed by traversing the GPS breadcrumbs in `trip_locations`, discarding inaccurate points (accuracy > 50m) and anomalous speed jumps (> 160 km/h or > 500m/s).
+     - If fewer than 2 valid GPS points exist or GPS distance is < 30% of the initial route estimate, the engine automatically falls back to the server-cached Google Directions route estimate.
+  6. **Vehicle-Specific Dynamic Fare Engine & Mock Payments**:
+     - Rates are parameterized by vehicle type in `fare_rules` (base fare, per-km, per-minute, free waiting minutes, waiting charge per minute, platform fee %, GST / tax %, minimum fare).
+     - Formula:
+       - `distanceCharge = max(0, distanceKm - baseKm) * perKmRate`
+       - `timeCharge = durationMinutes * perMinuteRate`
+       - `waitingCharge = max(0, waitingMinutes - freeWaitingMinutes) * waitingChargePerMinute`
+       - `subtotal = max(minFare, baseFare + distanceCharge + timeCharge + waitingCharge)`
+       - `platformFee = subtotal * (platformFeePercent / 100)`
+       - `tax = (subtotal + platformFee) * (taxPercent / 100)`
+       - `total = round(subtotal + platformFee + tax)`
+     - Uses epsilon rounding (`Math.round((val + 1e-7) * 100) / 100`) to eliminate IEEE 754 floating-point inaccuracies.
+     - `MockPaymentProvider` immediately charges the customer via a simulated gateway and records transaction metadata in `payments`.
+  7. **Google Maps Navigation Handoff (`src/services/maps-handoff.ts`)**:
+     - URL generation: Origin is deliberately omitted so Google Maps utilizes the driver's real-time device GPS fix at $0 API billing cost.
+     - Vehicle mode mapping: `four_wheeler` and `three_wheeler` map to `driving`. For `two_wheeler`, Google Maps URL scheme uses `two-wheeler` (Android intent `mode=2`), falling back to `driving`.
+     - Android: Tries native intent `google.navigation:q=LAT,LNG&mode=...` first, falling back to universal link `https://www.google.com/maps/dir/?api=1&destination=LAT,LNG&travelmode=...`.
+     - iOS: Checks `canOpenURL('comgooglemaps://')` to invoke `comgooglemaps://?daddr=LAT,LNG&directionsmode=...`, falling back to universal link (browser / Apple Maps).
+     - Security & Privacy: Coordinates are sourced strictly from validated server trip records. Customer personal details (name, phone) are never passed to external map providers. Analytics logging logs only `tripId` and `leg`, suppressing raw coordinates.
+     - Lifecycle: Background telemetry service continues streaming location in the background while Google Maps is foregrounded. On `AppState` return to `active`, the screen re-syncs trip status and shows a welcome back banner.
+
+---
+
+### Phase 4 Assumptions
+
+1. **Simulator As Customer**: Because the Ryde customer application is scheduled for future phases, all customer interactions (viewing the 6-digit OTP, triggering customer cancellations) are executed via `scripts/booking-simulator`.
+2. **Dev OTP Outbox**: The `trip_otp_outbox` table serves strictly as an automated test fixture for Phase 4 simulation and will be replaced by SMS/WhatsApp gateway dispatch when the customer app goes live.
+3. **Mock Payment Settlement**: Real payment gateway integration (Razorpay/Stripe) belongs to the customer booking platform. In Phase 4, the mock payment provider automatically succeeds and persists settled payment records.
+4. **Google Maps Zero Billing**: Maps handoff uses native OS URI intents and Universal Links without sending origin coordinates, completely avoiding Google Maps Directions API charges on mobile devices.
+
 

@@ -22,14 +22,6 @@ describe('Planned Future Module Stubs (Phase 4+): 501 Not Implemented', () => {
 
   const authHeader = { Authorization: 'Bearer valid-test-token' };
 
-  it('GET /api/v1/trips/:id returns 501 (Phase 4 Trip Execution)', async () => {
-    const res = await request(app)
-      .get('/api/v1/trips/11111111-1111-1111-1111-111111111111')
-      .set(authHeader);
-    expect(res.status).toBe(501);
-    expect(res.body.error.code).toBe('NOT_IMPLEMENTED');
-  });
-
   it('GET /api/v1/earnings returns 501 (Phase 5 Driver Earnings & Settlement)', async () => {
     const res = await request(app).get('/api/v1/earnings').set(authHeader);
     expect(res.status).toBe(501);

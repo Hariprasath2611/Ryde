@@ -3,13 +3,15 @@
 
 import { checkLicenseExpiryJob } from './licenseExpiryCheck.js';
 import { checkStaleDriversJob } from './staleDriverCheck.js';
+import { checkStaleWaitingTripsJob } from './staleWaitingTripCheck.js';
 
-export { checkLicenseExpiryJob, checkStaleDriversJob };
+export { checkLicenseExpiryJob, checkStaleDriversJob, checkStaleWaitingTripsJob };
 
 export function startBackgroundJobs(): void {
   // In development/production, schedule daily license expiry check
   const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
   const THIRTY_SECONDS_MS = 30 * 1000;
+  const SIXTY_SECONDS_MS = 60 * 1000;
 
   // Run initial checks non-blocking
   checkLicenseExpiryJob().catch((err) => {
@@ -18,6 +20,10 @@ export function startBackgroundJobs(): void {
 
   checkStaleDriversJob().catch((err) => {
     console.warn('Initial stale driver check failed:', err);
+  });
+
+  checkStaleWaitingTripsJob().catch((err) => {
+    console.warn('Initial stale waiting trip check failed:', err);
   });
 
   // Schedule daily interval for license expiry
@@ -33,4 +39,12 @@ export function startBackgroundJobs(): void {
       console.error('Scheduled stale driver check error:', err);
     });
   }, THIRTY_SECONDS_MS);
+
+  // Schedule 60-second interval for stale waiting trip cancel check
+  setInterval(() => {
+    checkStaleWaitingTripsJob().catch((err) => {
+      console.error('Scheduled stale waiting trip check error:', err);
+    });
+  }, SIXTY_SECONDS_MS);
 }
+

@@ -58,3 +58,22 @@ ID                                   | STATUS          | FARE    | PICKUP
 ```bash
 npx tsx scripts/booking-simulator/index.ts cancel <booking_id>
 ```
+
+### 7. Read Trip OTP (Phase 4 Customer Verification)
+Reads the customer's 6-digit trip start verification OTP from the developer outbox:
+```bash
+npx tsx scripts/booking-simulator/index.ts otp --trip <trip_id>
+```
+
+### 8. View Trip Status & Handover Details (Phase 4)
+Displays full trip state, vehicle handover inspection data, and computed fare breakdown:
+```bash
+npx tsx scripts/booking-simulator/index.ts trip-status --trip <trip_id>
+```
+
+### 9. Cancel an Active Trip as Customer (Phase 4)
+Simulates passenger cancellation during trip progression:
+```bash
+npx tsx scripts/booking-simulator/index.ts cancel-trip --trip <trip_id> --reason "Passenger changed plans"
+```
+

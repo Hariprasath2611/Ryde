@@ -427,9 +427,51 @@ paths:
         '409':
           $ref: '#/components/responses/ConflictError'
 
+  /trips:
+    get:
+      x-status: implemented
+      summary: Retrieve authenticated driver trip history (paginated)
+      description: Returns a paginated list of trips assigned to this driver with status filtering.
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated trip records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trips:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Trip'
+                  pagination:
+                    type: object
+                    properties:
+                      page: { type: integer }
+                      limit: { type: integer }
+                      total: { type: integer }
+                      totalPages: { type: integer }
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
   /trips/{id}:
     get:
-      x-status: planned
+      x-status: implemented
       summary: Get comprehensive trip details
       parameters:
         - name: id
@@ -444,16 +486,45 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Trip'
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Trip'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-        '501':
-          $ref: '#/components/responses/NotImplementedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /trips/{id}/start-heading:
+    post:
+      x-status: implemented
+      summary: Mark driver heading to customer pickup location
+      description: Transitions trip state from assigned to heading_to_pickup. Accepts Idempotency-Key.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Driver is now heading to pickup
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
 
   /trips/{id}/arrived:
     post:
-      x-status: planned
-      summary: Notify customer that driver has arrived at vehicle location
+      x-status: implemented
+      summary: Notify customer that driver has arrived at pickup location
+      description: Verifies driver is within 150m server geofence, transitions state to arrived, and starts waiting timer.
       parameters:
         - name: id
           in: path
@@ -461,18 +532,26 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
       responses:
         '200':
-          description: Arrival state recorded
+          description: Arrival state recorded and waiting timer initiated
+        '400':
+          $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-        '501':
-          $ref: '#/components/responses/NotImplementedError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
 
   /trips/{id}/generate-otp:
     post:
-      x-status: planned
+      x-status: implemented
       summary: Generate a verification OTP for customer vehicle handover
+      description: Generates a 6-digit OTP, stores SHA-256 hash, and writes raw code to dev outbox with 60s cooldown.
       parameters:
         - name: id
           in: path
@@ -482,16 +561,17 @@ paths:
             format: uuid
       responses:
         '200':
-          description: OTP generated and dispatched to customer
+          description: OTP generated and dispatched to customer dev outbox
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-        '501':
-          $ref: '#/components/responses/NotImplementedError'
+        '429':
+          description: OTP cooldown active
 
   /trips/{id}/verify-otp:
     post:
-      x-status: planned
+      x-status: implemented
       summary: Verify the start OTP provided by the customer
+      description: Constant-time comparison of hashed OTP with attempt counting and lockout after 5 failures.
       parameters:
         - name: id
           in: path
@@ -499,6 +579,11 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -513,18 +598,19 @@ paths:
                   example: '482910'
       responses:
         '200':
-          description: OTP verified successfully
+          description: OTP verified successfully; state transitioned to otp_verified
         '400':
           $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-        '501':
-          $ref: '#/components/responses/NotImplementedError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
 
   /trips/{id}/handover:
     post:
-      x-status: planned
-      summary: Record customer vehicle handover inspection (odometer, fuel, condition)
+      x-status: implemented
+      summary: Record customer vehicle handover inspection (odometer, fuel, 6 required photos)
+      description: Requires otp_verified state and 6 mandatory inspection photos. Transitions state to handover_done.
       parameters:
         - name: id
           in: path
@@ -532,6 +618,11 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -540,18 +631,19 @@ paths:
               $ref: '#/components/schemas/VehicleHandoverRequest'
       responses:
         '200':
-          description: Handover logged
+          description: Handover logged and verified
         '400':
           $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-        '501':
-          $ref: '#/components/responses/NotImplementedError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
 
   /trips/{id}/start:
     post:
-      x-status: planned
+      x-status: implemented
       summary: Mark trip journey started
+      description: Requires handover_done. Sets started_at and transitions state to in_progress.
       parameters:
         - name: id
           in: path
@@ -559,18 +651,24 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
       responses:
         '200':
           description: Trip marked in progress
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-        '501':
-          $ref: '#/components/responses/NotImplementedError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
 
   /trips/{id}/end:
     post:
-      x-status: planned
-      summary: Mark trip journey completed with final odometer and toll charges
+      x-status: implemented
+      summary: End trip journey with final return handover, GPS trail fare calculation and mock payment
+      description: Evaluates 200m destination geofence (requires earlyDropReason if ended elsewhere), computes fare breakdown, records mock payment, and transitions state to completed.
       parameters:
         - name: id
           in: path
@@ -578,6 +676,11 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -586,13 +689,113 @@ paths:
               $ref: '#/components/schemas/EndTripRequest'
       responses:
         '200':
-          description: Trip marked completed and fare settled
+          description: Trip marked completed, fare computed, and payment charged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  fare:
+                    $ref: '#/components/schemas/FareBreakdown'
         '400':
           $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-        '501':
-          $ref: '#/components/responses/NotImplementedError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /trips/{id}/cancel:
+    post:
+      x-status: implemented
+      summary: Cancel trip prior to start
+      description: Driver cancellation with required reason before trip starts.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelTripRequest'
+      responses:
+        '200':
+          description: Trip cancelled successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /trips/{id}/route:
+    get:
+      x-status: implemented
+      summary: Get cached Google Directions route polyline, distance and ETA
+      description: Server-side Google Directions proxy with caching.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Route polyline and estimates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      polyline: { type: string }
+                      distanceMeters: { type: number }
+                      durationSeconds: { type: number }
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /trips/{id}/contact:
+    get:
+      x-status: implemented
+      summary: Get customer contact phone number
+      description: Returns customer phone number only for active trips assigned to this driver.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Customer contact phone
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      phone: { type: string }
+                      customerName: { type: string }
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Contact information forbidden for inactive trips
 
   /earnings:
     get:
@@ -1236,41 +1439,113 @@ components:
         id:
           type: string
           format: uuid
-        status:
+        trip_status:
           type: string
           enum:
-            [dispatched, arrived_at_pickup, vehicle_handover_pending, started, completed, cancelled]
-        pickupLocation:
+            [assigned, heading_to_pickup, arrived, otp_verified, handover_done, in_progress, completed, cancelled_by_driver, cancelled_by_customer, cancelled_by_system]
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        ended_at:
+          type: string
+          format: date-time
+          nullable: true
+        waiting_started_at:
+          type: string
+          format: date-time
+          nullable: true
+        waiting_duration_s:
+          type: integer
+        distance_km:
+          type: number
+        duration_minutes:
+          type: number
+        booking:
           type: object
-        destinationLocation:
+        vehicle:
           type: object
+        customer:
+          type: object
+
+    HandoverPhotoItem:
+      type: object
+      required:
+        - photoType
+        - filePath
+      properties:
+        photoType:
+          type: string
+          enum: [front, back, left, right, odometer, fuel_gauge]
+        filePath:
+          type: string
 
     VehicleHandoverRequest:
       type: object
       required:
-        - odometerReading
-        - checklistPassed
+        - odometerBefore
+        - fuelLevelBefore
+        - photos
       properties:
-        odometerReading:
+        odometerBefore:
           type: number
-        fuelLevel:
-          type: string
-          enum: [low, quarter, half, three_quarters, full]
-        checklistPassed:
-          type: boolean
+        fuelLevelBefore:
+          type: number
         notes:
           type: string
+        existingDamageNotes:
+          type: string
+        photos:
+          type: array
+          minItems: 6
+          items:
+            $ref: '#/components/schemas/HandoverPhotoItem'
 
     EndTripRequest:
       type: object
       required:
-        - odometerReading
+        - odometerAfter
       properties:
-        odometerReading:
+        odometerAfter:
           type: number
-        tollAmount:
+        fuelLevelAfter:
           type: number
-        parkingAmount:
+        earlyDropReason:
+          type: string
+        notes:
+          type: string
+        returnPhotos:
+          type: array
+          items:
+            $ref: '#/components/schemas/HandoverPhotoItem'
+
+    CancelTripRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 3
+
+    FareBreakdown:
+      type: object
+      properties:
+        baseFare:
+          type: number
+        distanceCharge:
+          type: number
+        timeCharge:
+          type: number
+        waitingCharge:
+          type: number
+        subtotal:
+          type: number
+        platformFee:
+          type: number
+        tax:
+          type: number
+        total:
           type: number
 
     EarningsSummary:
