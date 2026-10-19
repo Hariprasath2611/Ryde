@@ -9,39 +9,21 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-export type UserRole = 'driver' | 'customer' | 'admin' | 'support';
-export type AccountStatus = 'active' | 'suspended' | 'deleted';
-export type VerificationStatus = 'pending' | 'approved' | 'rejected' | 'expired';
-export type VehicleType = 'two_wheeler' | 'three_wheeler' | 'four_wheeler';
-export type AvailabilityStatus = 'offline' | 'online' | 'on_trip';
-export type BookingStatus =
-  | 'pending'
-  | 'assigned'
-  | 'driver_arrived'
-  | 'in_progress'
-  | 'completed'
-  | 'cancelled';
-export type AssignmentStatus =
-  | 'offered'
-  | 'accepted'
-  | 'rejected'
-  | 'expired'
-  | 'cancelled';
-export type TripStatus =
-  | 'dispatched'
-  | 'arrived_at_pickup'
-  | 'vehicle_handover_pending'
-  | 'started'
-  | 'completed'
-  | 'cancelled';
-export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
-export type SettlementStatus = 'pending' | 'processed' | 'failed';
-export type SosStatus = 'triggered' | 'acknowledged' | 'resolved' | 'false_alarm';
-export type ComplaintStatus =
-  | 'filed'
-  | 'under_investigation'
-  | 'resolved'
-  | 'dismissed';
+import type {
+  UserRole,
+  AccountStatus,
+  VerificationStatus,
+  VehicleType,
+  AvailabilityStatus,
+  BookingStatus,
+  AssignmentStatus,
+  TripStatus,
+  PaymentStatus,
+  SettlementStatus,
+  SosStatus,
+  ComplaintStatus,
+} from '../constants/index.js';
+
 
 export interface Database {
   public: {
