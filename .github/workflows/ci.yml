@@ -1,0 +1,34 @@
+name: Ryde Platform CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+  verify:
+    name: Lint, Typecheck & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: Install root and workspace dependencies
+        run: npm install
+
+      - name: Run lint across all packages
+        run: npm run lint
+
+      - name: Run typecheck across all packages
+        run: npm run typecheck
+
+      - name: Run test suites across backend, shared, and mobile
+        run: npm test
