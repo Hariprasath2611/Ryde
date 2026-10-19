@@ -30,7 +30,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
     if (!session) {
       if (!inAuthGroup && currentSegment !== '') {
-        router.replace('/(auth)/welcome');
+        router.replace('/(auth)/login');
       }
       return;
     }
@@ -43,12 +43,12 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     if (!isApproved) {
       // Unapproved drivers cannot access main tabs or auth screens
       if (inTabsGroup || inAuthGroup) {
-        router.replace('/(onboarding)/status');
+        router.replace('/(onboarding)');
       }
     } else {
       // Approved drivers navigating to auth or onboarding are routed to dashboard tabs
       if (inAuthGroup || inOnboardingGroup) {
-        router.replace('/(tabs)/home');
+        router.replace('/(tabs)');
       }
     }
   }, [session, driverProfile, isLoading, segments, router]);
