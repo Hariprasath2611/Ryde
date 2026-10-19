@@ -3,12 +3,16 @@ import { render } from '@testing-library/react-native';
 import HomeScreen from '../app/(tabs)/index';
 
 describe('Ryde Capital - HomeScreen Placeholder', () => {
-  it('renders successfully and contains platform title and role information', () => {
-    const element = HomeScreen();
-    expect(element).toBeDefined();
-    expect(element.props.testID).toBe('home-screen-container');
+  it('renders successfully and displays platform title and role information', async () => {
+    const screen = await render(<HomeScreen />);
 
-    const result = render(<HomeScreen />);
-    console.log('Result:', result);
+    // Assert container renders
+    expect(screen.getByTestId('home-screen-container')).toBeTruthy();
+
+    // Assert branding title and driver role indicators
+    expect(screen.getByText('Ryde Capital')).toBeTruthy();
+    expect(screen.getByText('Professional Driver Companion')).toBeTruthy();
+    expect(screen.getByText('PHASE 0 FOUNDATION')).toBeTruthy();
+    expect(screen.getByText('Driver Core Ready')).toBeTruthy();
   });
 });
