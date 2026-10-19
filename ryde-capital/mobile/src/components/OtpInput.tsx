@@ -14,6 +14,7 @@ export interface OtpInputProps {
   autoFocus?: boolean;
   disabled?: boolean;
   error?: boolean;
+  testID?: string;
 }
 
 export const OtpInput: React.FC<OtpInputProps> = ({
@@ -23,6 +24,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
   autoFocus = true,
   disabled = false,
   error = false,
+  testID = 'otp-input',
 }) => {
   const inputRefs = useRef<Array<any>>([]);
 

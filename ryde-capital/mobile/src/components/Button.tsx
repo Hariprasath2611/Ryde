@@ -21,6 +21,7 @@ export interface ButtonProps {
   textStyle?: TextStyle;
   icon?: React.ReactNode;
   accessibilityLabel?: string;
+  testID?: string;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -33,6 +34,7 @@ export const Button: React.FC<ButtonProps> = ({
   textStyle,
   icon,
   accessibilityLabel,
+  testID,
 }) => {
   const isInteractive = !disabled && !loading;
 
@@ -86,6 +88,7 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <TouchableOpacity
+      testID={testID}
       onPress={onPress}
       disabled={!isInteractive}
       activeOpacity={0.8}

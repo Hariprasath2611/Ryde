@@ -15,6 +15,8 @@ export interface PhoneFieldProps {
   helperText?: string;
   containerStyle?: ViewStyle;
   editable?: boolean;
+  testID?: string;
+  errorTestID?: string;
 }
 
 export const validateIndianPhone = (phone: string): boolean => {
@@ -29,6 +31,8 @@ export const PhoneField: React.FC<PhoneFieldProps> = ({
   helperText,
   containerStyle,
   editable = true,
+  testID = 'phone-input',
+  errorTestID = 'phone-error-message',
 }) => {
   const handleChange = (text: string) => {
     // Only permit digits up to 10
@@ -54,6 +58,7 @@ export const PhoneField: React.FC<PhoneFieldProps> = ({
           ]}
         >
           <TextInput
+            testID={testID}
             value={value}
             onChangeText={handleChange}
             keyboardType="number-pad"
@@ -70,7 +75,9 @@ export const PhoneField: React.FC<PhoneFieldProps> = ({
       </View>
 
       {error ? (
-        <Text style={styles.errorText}>{error}</Text>
+        <Text testID={errorTestID} style={styles.errorText}>
+          {error}
+        </Text>
       ) : helperText ? (
         <Text style={styles.helperText}>{helperText}</Text>
       ) : null}

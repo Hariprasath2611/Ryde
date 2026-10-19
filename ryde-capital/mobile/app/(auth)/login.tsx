@@ -24,15 +24,20 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSendCode = async () => {
-    if (!validateIndianPhone(phone)) {
-      setError(en.login.invalidPhone);
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length !== 10) {
+      setError('Mobile number must be exactly 10 digits');
+      return;
+    }
+    if (!/^[6-9]/.test(cleaned)) {
+      setError('Indian mobile numbers must start with 6, 7, 8, or 9');
       return;
     }
 
     setIsLoading(true);
     setError(null);
 
-    const formattedPhone = `+91${phone}`;
+    const formattedPhone = `+91${cleaned}`;
     try {
       const result = await sendOtp(formattedPhone);
       setIsLoading(false);
@@ -69,6 +74,8 @@ export default function LoginScreen() {
 
             <View style={styles.fieldSection}>
               <PhoneField
+                testID="phone-input"
+                errorTestID="phone-error-message"
                 value={phone}
                 onChangeText={(val) => {
                   setPhone(val);
@@ -82,11 +89,12 @@ export default function LoginScreen() {
 
           <View style={styles.footer}>
             <Button
+              testID="send-otp-button"
               title={en.login.sendCode}
               variant="amber"
               onPress={handleSendCode}
               loading={isLoading}
-              disabled={phone.length < 10}
+              disabled={phone.length === 0}
               accessibilityLabel="Send code"
             />
           </View>
