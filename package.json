@@ -16,6 +16,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "setup:env": "node scripts/setup-env.js",
+    "db:types": "supabase gen types typescript --local > shared/src/types/database.types.ts",
     "postinstall": "npm --prefix ryde-capital/mobile install"
   },
   "devDependencies": {
