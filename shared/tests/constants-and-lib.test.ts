@@ -3,9 +3,14 @@ import {
   ROLES,
   BOOKING_STATUS,
   TRIP_STATUS,
-  ASSIGNMENT_STATUS,
+  ACCOUNT_STATUS,
   VERIFICATION_STATUS,
   VEHICLE_TYPE,
+  AVAILABILITY_STATUS,
+  SETTLEMENT_STATUS,
+  SOS_STATUS,
+  COMPLAINT_STATUS,
+  PAYMENT_STATUS,
   AppError,
   BadRequestError,
   UnauthorizedError,
@@ -25,14 +30,25 @@ describe('Shared Package: Constants & Lib', () => {
     expect(ROLES.SUPPORT).toBe('support');
   });
 
-  it('should export all required lifecycle statuses and vehicle types', () => {
-    expect(BOOKING_STATUS.PENDING).toBe('pending');
-    expect(TRIP_STATUS.STARTED).toBe('started');
-    expect(ASSIGNMENT_STATUS.OFFERED).toBe('offered');
-    expect(VERIFICATION_STATUS.VERIFIED).toBe('verified');
+  it('should export all 12 Phase 1 domain enums accurately', () => {
+    expect(ACCOUNT_STATUS.ACTIVE).toBe('active');
+    expect(VERIFICATION_STATUS.PENDING).toBe('pending');
+    expect(VERIFICATION_STATUS.APPROVED).toBe('approved');
+    expect(VERIFICATION_STATUS.REJECTED).toBe('rejected');
+    expect(VERIFICATION_STATUS.EXPIRED).toBe('expired');
     expect(VEHICLE_TYPE.TWO_WHEELER).toBe('two_wheeler');
     expect(VEHICLE_TYPE.THREE_WHEELER).toBe('three_wheeler');
     expect(VEHICLE_TYPE.FOUR_WHEELER).toBe('four_wheeler');
+    expect(AVAILABILITY_STATUS.OFFLINE).toBe('offline');
+    expect(AVAILABILITY_STATUS.ONLINE).toBe('online');
+    expect(AVAILABILITY_STATUS.ON_TRIP).toBe('on_trip');
+    expect(BOOKING_STATUS.PENDING).toBe('pending');
+    expect(ASSIGNMENT_STATUS.OFFERED).toBe('offered');
+    expect(TRIP_STATUS.STARTED).toBe('started');
+    expect(PAYMENT_STATUS.COMPLETED).toBe('completed');
+    expect(SETTLEMENT_STATUS.PROCESSED).toBe('processed');
+    expect(SOS_STATUS.TRIGGERED).toBe('triggered');
+    expect(COMPLAINT_STATUS.FILED).toBe('filed');
   });
 
   it('should create proper AppError subclasses with correct status codes', () => {
