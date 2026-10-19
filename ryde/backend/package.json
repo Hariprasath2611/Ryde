@@ -1,0 +1,11 @@
+{
+  "name": "@ryde/customer-backend",
+  "version": "0.1.0",
+  "description": "Ryde Customer App Backend API (Placeholder for Phase 3)",
+  "private": true,
+  "scripts": {
+    "typecheck": "echo \"No typecheck for placeholder\"",
+    "lint": "echo \"No lint for placeholder\"",
+    "test": "echo \"No tests for placeholder\""
+  }
+}
