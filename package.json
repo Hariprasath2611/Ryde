@@ -1,0 +1,28 @@
+{
+  "name": "ryde-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ryde Platform Monorepo (Driver & Customer Apps)",
+  "workspaces": [
+    "shared",
+    "ryde-capital/backend",
+    "ryde/backend"
+  ],
+  "scripts": {
+    "lint": "npm run lint --workspaces --if-present && npm run lint --prefix ryde-capital/mobile",
+    "typecheck": "npm run typecheck --workspaces --if-present && npm run typecheck --prefix ryde-capital/mobile",
+    "test": "npm test --workspaces --if-present && npm test --prefix ryde-capital/mobile",
+    "build": "npm run build --workspaces --if-present",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "postinstall": "npm --prefix ryde-capital/mobile install"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.2"
+  }
+}
