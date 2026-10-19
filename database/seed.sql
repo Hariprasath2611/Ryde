@@ -1,0 +1,13 @@
+-- ==============================================================================
+-- Ryde Platform Seed Data Placeholder
+-- ==============================================================================
+-- This file contains local development and test seed data for the Supabase database.
+-- Tables will be populated here starting in Phase 1 (Schema & Migrations).
+--
+-- Categories of seed data planned:
+-- 1. Default system roles & permissions
+-- 2. Test drivers (verified, pending, blocked)
+-- 3. Test customer accounts
+-- 4. Sample vehicle types (two_wheeler, three_wheeler, four_wheeler)
+-- 5. Test emergency contact templates
+-- ==============================================================================
