@@ -1,7 +1,17 @@
 {
-  "name": "mobile",
-  "version": "1.0.0",
+  "name": "@ryde/capital-mobile",
+  "version": "0.1.0",
   "main": "expo-router/entry",
+  "private": true,
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "lint": "eslint \"{app,src,tests}/**/*.{ts,tsx}\"",
+    "typecheck": "tsc --noEmit",
+    "test": "jest --passWithNoTests"
+  },
   "dependencies": {
     "@expo/ui": "~58.0.20",
     "expo": "~58.0.14",
@@ -31,17 +41,11 @@
     "@testing-library/react-native": "^14.1.0",
     "@types/jest": "^30.0.0",
     "@types/react": "~19.3.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
     "jest": "^30.5.2",
     "jest-expo": "^58.0.11",
-    "typescript": "~6.0.3"
-  },
-  "scripts": {
-    "start": "expo start",
-    "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
-    "lint": "expo lint"
-  },
-  "private": true
+    "typescript": "~5.8.2"
+  }
 }
