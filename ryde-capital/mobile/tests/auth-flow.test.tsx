@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
-import { render, fireEvent, waitFor, cleanup } from '@testing-library/react-native';
+import { render, fireEvent, act, cleanup } from '@testing-library/react-native';
 import LoginScreen from '../app/(auth)/login';
 import OtpScreen from '../app/(auth)/otp';
 import * as AuthStore from '../src/store/auth';
@@ -45,36 +45,42 @@ describe('Mobile Auth Flow (Login & OTP Screens)', () => {
 
   afterEach(() => {
     cleanup();
-    jest.restoreAllMocks();
+    jest.clearAllTimers();
   });
 
   describe('LoginScreen (Phone Validation & Dispatch)', () => {
     it('shows error when phone number has fewer than 10 digits', async () => {
       const screen = await render(<LoginScreen />);
+      const phoneInput = screen.getByTestId('phone-input');
+      const sendButton = screen.getByTestId('send-otp-button');
 
-      const phoneInput = await screen.findByTestId('phone-input');
-      const sendButton = await screen.findByTestId('send-otp-button');
+      await act(async () => {
+        fireEvent.changeText(phoneInput, '98765');
+      });
 
-      fireEvent.changeText(phoneInput, '98765');
-      fireEvent.press(sendButton);
+      await act(async () => {
+        fireEvent.press(sendButton);
+      });
 
-      const errorMessage = await screen.findByTestId('phone-error-message');
-      expect(errorMessage).toBeTruthy();
+      expect(screen.getByTestId('phone-error-message')).toBeTruthy();
       expect(screen.getByText('Mobile number must be exactly 10 digits')).toBeTruthy();
       expect(mockSendOtp).not.toHaveBeenCalled();
     });
 
     it('shows error when phone number does not start with 6, 7, 8, or 9', async () => {
       const screen = await render(<LoginScreen />);
+      const phoneInput = screen.getByTestId('phone-input');
+      const sendButton = screen.getByTestId('send-otp-button');
 
-      const phoneInput = await screen.findByTestId('phone-input');
-      const sendButton = await screen.findByTestId('send-otp-button');
+      await act(async () => {
+        fireEvent.changeText(phoneInput, '1234567890');
+      });
 
-      fireEvent.changeText(phoneInput, '1234567890');
-      fireEvent.press(sendButton);
+      await act(async () => {
+        fireEvent.press(sendButton);
+      });
 
-      const errorMessage = await screen.findByTestId('phone-error-message');
-      expect(errorMessage).toBeTruthy();
+      expect(screen.getByTestId('phone-error-message')).toBeTruthy();
       expect(
         screen.getByText('Indian mobile numbers must start with 6, 7, 8, or 9'),
       ).toBeTruthy();
@@ -85,19 +91,21 @@ describe('Mobile Auth Flow (Login & OTP Screens)', () => {
       mockSendOtp.mockResolvedValueOnce({ success: true });
 
       const screen = await render(<LoginScreen />);
+      const phoneInput = screen.getByTestId('phone-input');
+      const sendButton = screen.getByTestId('send-otp-button');
 
-      const phoneInput = await screen.findByTestId('phone-input');
-      const sendButton = await screen.findByTestId('send-otp-button');
+      await act(async () => {
+        fireEvent.changeText(phoneInput, '9876543210');
+      });
 
-      fireEvent.changeText(phoneInput, '9876543210');
-      fireEvent.press(sendButton);
+      await act(async () => {
+        fireEvent.press(sendButton);
+      });
 
-      await waitFor(() => {
-        expect(mockSendOtp).toHaveBeenCalledWith('+919876543210');
-        expect(mockPush).toHaveBeenCalledWith({
-          pathname: '/(auth)/otp',
-          params: { phone: '+919876543210' },
-        });
+      expect(mockSendOtp).toHaveBeenCalledWith('+919876543210');
+      expect(mockPush).toHaveBeenCalledWith({
+        pathname: '/(auth)/otp',
+        params: { phone: '+919876543210' },
       });
     });
   });
@@ -105,15 +113,18 @@ describe('Mobile Auth Flow (Login & OTP Screens)', () => {
   describe('OtpScreen (6-Digit OTP, Validation & Resend Timer)', () => {
     it('shows error when verifying with fewer than 6 digits', async () => {
       const screen = await render(<OtpScreen />);
+      const otpInput = screen.getByTestId('otp-input');
+      const verifyButton = screen.getByTestId('verify-otp-button');
 
-      const otpInput = await screen.findByTestId('otp-input');
-      const verifyButton = await screen.findByTestId('verify-otp-button');
+      await act(async () => {
+        fireEvent.changeText(otpInput, '1234');
+      });
 
-      fireEvent.changeText(otpInput, '1234');
-      fireEvent.press(verifyButton);
+      await act(async () => {
+        fireEvent.press(verifyButton);
+      });
 
-      const errorMessage = await screen.findByTestId('otp-error-message');
-      expect(errorMessage).toBeTruthy();
+      expect(screen.getByTestId('otp-error-message')).toBeTruthy();
       expect(
         screen.getByText('Please enter all 6 digits of the verification code'),
       ).toBeTruthy();
@@ -124,43 +135,53 @@ describe('Mobile Auth Flow (Login & OTP Screens)', () => {
       mockVerifyOtp.mockResolvedValueOnce({ success: true });
 
       const screen = await render(<OtpScreen />);
+      const otpInput = screen.getByTestId('otp-input');
+      const verifyButton = screen.getByTestId('verify-otp-button');
 
-      const otpInput = await screen.findByTestId('otp-input');
-      const verifyButton = await screen.findByTestId('verify-otp-button');
-
-      fireEvent.changeText(otpInput, '123456');
-      fireEvent.press(verifyButton);
-
-      await waitFor(() => {
-        expect(mockVerifyOtp).toHaveBeenCalledWith('+919876543210', '123456');
-        expect(mockReplace).toHaveBeenCalledWith('/(tabs)');
+      await act(async () => {
+        fireEvent.changeText(otpInput, '123456');
       });
+
+      await act(async () => {
+        fireEvent.press(verifyButton);
+      });
+
+      expect(mockVerifyOtp).toHaveBeenCalledWith('+919876543210', '123456');
+      expect(mockReplace).toHaveBeenCalledWith('/(tabs)');
     });
 
     it('locks out after 3 consecutive failed OTP attempts', async () => {
       mockVerifyOtp.mockResolvedValue({ success: false, error: 'Invalid code' });
 
       const screen = await render(<OtpScreen />);
-
-      const otpInput = await screen.findByTestId('otp-input');
-      const verifyButton = await screen.findByTestId('verify-otp-button');
+      const otpInput = screen.getByTestId('otp-input');
+      const verifyButton = screen.getByTestId('verify-otp-button');
 
       // Attempt 1
-      fireEvent.changeText(otpInput, '000001');
-      fireEvent.press(verifyButton);
-      await screen.findByTestId('otp-error-message');
+      await act(async () => {
+        fireEvent.changeText(otpInput, '000001');
+      });
+      await act(async () => {
+        fireEvent.press(verifyButton);
+      });
 
       // Attempt 2
-      fireEvent.changeText(otpInput, '000002');
-      fireEvent.press(verifyButton);
-      await screen.findByTestId('otp-error-message');
+      await act(async () => {
+        fireEvent.changeText(otpInput, '000002');
+      });
+      await act(async () => {
+        fireEvent.press(verifyButton);
+      });
 
       // Attempt 3
-      fireEvent.changeText(otpInput, '000003');
-      fireEvent.press(verifyButton);
+      await act(async () => {
+        fireEvent.changeText(otpInput, '000003');
+      });
+      await act(async () => {
+        fireEvent.press(verifyButton);
+      });
 
-      const lockout = await screen.findByTestId('lockout-message');
-      expect(lockout).toBeTruthy();
+      expect(screen.getByTestId('lockout-message')).toBeTruthy();
       expect(
         screen.getByText('Too many failed attempts. Please request a new OTP.'),
       ).toBeTruthy();
@@ -168,9 +189,7 @@ describe('Mobile Auth Flow (Login & OTP Screens)', () => {
 
     it('displays 30-second countdown resend timer initially', async () => {
       const screen = await render(<OtpScreen />);
-
-      const resendText = await screen.findByText(/Resend OTP in/);
-      expect(resendText).toBeTruthy();
+      expect(screen.getByText(/Resend OTP in 30s/)).toBeTruthy();
     });
   });
 });
