@@ -17,10 +17,11 @@ describe('Mobile Auth Flow (Login & OTP Screens)', () => {
   const mockPush = jest.fn();
   const mockReplace = jest.fn();
   const mockBack = jest.fn();
-  const mockSendOtp = jest.fn<(...args: unknown[]) => Promise<unknown>>();
-  const mockVerifyOtp = jest.fn<(...args: unknown[]) => Promise<unknown>>();
-  const mockSignOut = jest.fn<(...args: unknown[]) => Promise<unknown>>();
-  const mockRefreshProfile = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+  const mockSendOtp = jest.fn<(phone: string) => Promise<{ success: boolean; error?: string }>>();
+  const mockVerifyOtp =
+    jest.fn<(phone: string, token: string) => Promise<{ success: boolean; error?: string }>>();
+  const mockSignOut = jest.fn<() => Promise<void>>();
+  const mockRefreshProfile = jest.fn<() => Promise<void>>();
 
   beforeEach(() => {
     jest.clearAllMocks();

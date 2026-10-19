@@ -24,6 +24,9 @@ jobs:
       - name: Install root and workspace dependencies
         run: npm install
 
+      - name: Build shared workspace
+        run: npm run build -w shared
+
       - name: Run lint across all packages
         run: npm run lint
 
