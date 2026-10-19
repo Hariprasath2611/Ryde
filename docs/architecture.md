@@ -1,6 +1,7 @@
 # Ryde Platform Architecture
 
 ## Executive Overview
+
 Ryde is an on-demand mobility platform operating in India that pairs vehicle owners with professional drivers to operate the **customer's personal vehicle** (two-wheelers, three-wheelers, and four-wheelers). Ryde is strictly a driver-on-demand service, not a taxi/cab fleet.
 
 ```
@@ -48,15 +49,19 @@ Ryde is an on-demand mobility platform operating in India that pairs vehicle own
 ## Core Tenets
 
 ### 1. Dual Independent Applications
+
 - **Ryde Capital**: Driver-facing application and dedicated backend managing driver onboarding, KYC documents, availability states, trip assignment dispatch, turn-by-turn vehicle handover inspection, location telemetry, and safety/SOS.
 - **Ryde**: Customer-facing application and backend managing customer profiles, registered personal vehicle records, booking requests, fare calculations, and payment settlements.
 
 ### 2. Single Shared PostgreSQL + PostGIS Database
+
 Both backends point to the **same** underlying Supabase instance.
+
 - Avoids distributed database dual-writes and distributed 2PC transactions.
 - PostGIS provides spatial calculations (driver-to-customer proximity indexing, geo-fencing).
 
 ### 3. Strict Inter-Service Communication via Database & Supabase Realtime
+
 - **Golden Rule**: Backends **NEVER** call each other directly via HTTP or RPC.
 - All cross-domain workflows happen through state transitions in database tables:
   1. A customer requests a driver in Ryde Backend -> row inserted into `bookings`.
@@ -65,6 +70,7 @@ Both backends point to the **same** underlying Supabase instance.
   4. Driver accepts -> assignment status updated to `accepted`, which triggers `trips` record creation.
 
 ### 4. Row Level Security (RLS) First
+
 - Every table has RLS explicitly enabled from inception.
 - Backends connect using Supabase `service_role` keys with strict domain boundary checks.
 - Direct mobile client queries adhere strictly to RLS policies.

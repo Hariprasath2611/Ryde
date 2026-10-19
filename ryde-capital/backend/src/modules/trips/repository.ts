@@ -8,7 +8,11 @@ export class TripsRepository implements ITripsRepository {
     return null;
   }
 
-  async updateStatus(_id: string, _status: string, _metadata?: Record<string, unknown>): Promise<unknown> {
+  async updateStatus(
+    _id: string,
+    _status: string,
+    _metadata?: Record<string, unknown>,
+  ): Promise<unknown> {
     return null;
   }
 }

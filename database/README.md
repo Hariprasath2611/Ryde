@@ -43,7 +43,9 @@ ALTER TABLE table_name ENABLE ROW LEVEL SECURITY;
 Tables are strictly partitioned by domain ownership between the two backends. Backends **never** mutate tables owned by the other backend directly.
 
 ### Ryde Backend (Customer App Domain)
+
 Owns tables related to customers, vehicles, booking intents, payments, and ratings:
+
 - `customers` / `customer_profiles`
 - `vehicles` (customer-owned two, three, or four-wheelers)
 - `bookings` (customer ride requests and booking intents)
@@ -51,7 +53,9 @@ Owns tables related to customers, vehicles, booking intents, payments, and ratin
 - `ratings` (customer-submitted driver reviews & ratings)
 
 ### Ryde Capital Backend (Driver App Domain)
+
 Owns tables related to drivers, availability, assignment dispatch, trip execution, telemetry, and safety:
+
 - `driver_profiles` (KYC documents, license verification, vehicle capability)
 - `driver_availability` (online/offline status, current shift state)
 - `assignments` (driver dispatch offers, acceptance, rejection)
@@ -61,7 +65,9 @@ Owns tables related to drivers, availability, assignment dispatch, trip executio
 - `sos_events` / `emergency_contacts` (driver safety alerts and contacts)
 
 ### Inter-Service Communication
+
 The backends communicate exclusively via:
+
 1. PostgreSQL table state updates.
 2. Supabase Realtime subscriptions (Postgres CDC replication).
 3. Backends **never** perform direct HTTP calls to one another.

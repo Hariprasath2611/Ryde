@@ -5,6 +5,7 @@ This document records the foundational technical and architectural decisions for
 ---
 
 ## ADR 001: Monorepo Architecture with npm Workspaces
+
 - **Status**: Accepted
 - **Context**: Ryde consists of multiple applications (Driver App, Customer App, backends, shared utilities, and admin portal).
 - **Decision**: Adopt an npm workspaces monorepo containing `shared`, `ryde-capital/backend`, `ryde/backend`, and mobile apps.
@@ -13,6 +14,7 @@ This document records the foundational technical and architectural decisions for
 ---
 
 ## ADR 002: Supabase (Managed Postgres + PostGIS) Instead of Self-Hosted Postgres
+
 - **Status**: Accepted
 - **Context**: Needs reliable PostgreSQL storage, PostGIS for geospatial indexing, real-time event broadcasting, and secure auth capabilities.
 - **Decision**: Use Supabase managed platform with local Supabase CLI for development and schema migrations.
@@ -21,6 +23,7 @@ This document records the foundational technical and architectural decisions for
 ---
 
 ## ADR 003: Dedicated Express.js Backends Retained for Complex Business Logic
+
 - **Status**: Accepted
 - **Context**: Supabase offers client-direct Postgres access via PostgREST and Edge Functions.
 - **Decision**: Maintain dedicated Express.js backends (`ryde-capital/backend` and `ryde/backend`) rather than routing everything directly through PostgREST.
@@ -29,6 +32,7 @@ This document records the foundational technical and architectural decisions for
 ---
 
 ## ADR 004: Monolithic Database, Independent Service Domains (No Microservices for MVP)
+
 - **Status**: Accepted
 - **Context**: Microservices introduce distributed transactions, RPC maintenance overhead, and latency spikes.
 - **Decision**: Two separate service backends sharing one PostgreSQL database partitioned cleanly into domain tables. Services communicate strictly via database mutations and Supabase Realtime CDC events, never by calling each other over HTTP.
@@ -37,6 +41,7 @@ This document records the foundational technical and architectural decisions for
 ---
 
 ## ADR 005: Mobile Technology Stack (Expo + Expo Router)
+
 - **Status**: Accepted
 - **Context**: Cross-platform mobile apps for iOS and Android in the Indian market.
 - **Decision**: React Native with Expo and Expo Router file-based routing.
@@ -45,6 +50,7 @@ This document records the foundational technical and architectural decisions for
 ---
 
 ## ADR 006: Testing Strategy
+
 - **Status**: Accepted
 - **Decision**: Vitest + Supertest for backends and shared package; Jest + React Native Testing Library for mobile frontends.
 - **Rationale**: Vitest provides ultra-fast native ESM execution for modern Node.js and TypeScript, while Jest with jest-expo is the standard testing setup for React Native components.
@@ -52,6 +58,7 @@ This document records the foundational technical and architectural decisions for
 ---
 
 ## Key Assumptions Made in Phase 0
+
 1. **Target Market**: India (INR currency, UPI / Razorpay payment gateways, phone OTP-based auth, Google Maps Indian road network).
 2. **Vehicle Ownership**: Ryde is not a cab aggregator; customers supply their personal two, three, or four-wheelers. The driver app must support vehicle handover checklists and odometer tracking.
 3. **Database Ownership**: Both backends share a single database, with Ryde Capital owning driver/trip/safety tables and Ryde owning customer/booking/payment tables.

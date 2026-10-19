@@ -117,13 +117,13 @@ cp shared/.env.example shared/.env
 
 ### Root Workspace Commands
 
-| Command | Description |
-| :--- | :--- |
-| `npm run lint` | Runs ESLint across all workspaces and mobile app |
-| `npm run typecheck` | Runs strict TypeScript compiler check across all packages |
-| `npm test` | Executes test suites across backend, shared, and mobile |
-| `npm run format` | Automatically formats all code using Prettier |
-| `npm run format:check` | Verifies code conforms to Prettier formatting |
+| Command                | Description                                               |
+| :--------------------- | :-------------------------------------------------------- |
+| `npm run lint`         | Runs ESLint across all workspaces and mobile app          |
+| `npm run typecheck`    | Runs strict TypeScript compiler check across all packages |
+| `npm test`             | Executes test suites across backend, shared, and mobile   |
+| `npm run format`       | Automatically formats all code using Prettier             |
+| `npm run format:check` | Verifies code conforms to Prettier formatting             |
 
 ### Ryde Capital Backend
 
@@ -156,6 +156,6 @@ Base URL: `http://localhost:4000/api/v1`
 
 - `GET /health` - Operational health check (status, uptime, version)
 - `GET /auth/me` - Validates Supabase JWT and returns user identity & role
-- *All other domain endpoints (driver, availability, assignments, trips, location, earnings, safety) return `501 Not Implemented` stubs conforming to `{ "error": { "code", "message", "requestId" } }`.*
+- _All other domain endpoints (driver, availability, assignments, trips, location, earnings, safety) return `501 Not Implemented` stubs conforming to `{ "error": { "code", "message", "requestId" } }`._
 
 Refer to [`docs/api/ryde-capital.openapi.yaml`](file:///d:/work/Ryde/docs/api/ryde-capital.openapi.yaml) for full OpenAPI 3.0 documentation.

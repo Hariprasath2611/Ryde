@@ -2,11 +2,7 @@ import { Router } from 'express';
 import { safetyController } from './controller.js';
 import { authMiddleware } from '../../middleware/auth.js';
 import { validate } from '../../middleware/validate.js';
-import {
-  tripSosParamSchema,
-  triggerSosSchema,
-  createEmergencyContactSchema,
-} from './schema.js';
+import { tripSosParamSchema, triggerSosSchema, createEmergencyContactSchema } from './schema.js';
 
 const router = Router();
 

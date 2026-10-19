@@ -9,7 +9,11 @@ export class AssignmentsService {
     throw new NotImplementedError('Assignment acceptance is not implemented yet');
   }
 
-  async rejectAssignment(_driverId: string, _assignmentId: string, _reason?: string): Promise<never> {
+  async rejectAssignment(
+    _driverId: string,
+    _assignmentId: string,
+    _reason?: string,
+  ): Promise<never> {
     throw new NotImplementedError('Assignment rejection is not implemented yet');
   }
 }

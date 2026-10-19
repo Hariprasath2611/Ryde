@@ -694,7 +694,8 @@ components:
           format: uuid
         status:
           type: string
-          enum: [dispatched, arrived_at_pickup, vehicle_handover_pending, started, completed, cancelled]
+          enum:
+            [dispatched, arrived_at_pickup, vehicle_handover_pending, started, completed, cancelled]
         pickupLocation:
           type: object
         destinationLocation:
