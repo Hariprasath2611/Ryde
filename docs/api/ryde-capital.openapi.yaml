@@ -1,0 +1,786 @@
+openapi: 3.0.3
+info:
+  title: Ryde Capital API (Driver App Backend)
+  version: 0.1.0
+  description: >
+    REST API specification for Ryde Capital, the driver-facing application of the Ryde Platform.
+    Ryde allows vehicle owners in India to book professional drivers for their personal vehicles.
+servers:
+  - url: http://localhost:4000/api/v1
+    description: Local development server
+  - url: https://capital-api.ryde.in/api/v1
+    description: Production gateway
+
+security:
+  - BearerAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns service operational status, uptime, and current API version.
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/me:
+    get:
+      summary: Retrieve authenticated driver profile identity
+      description: Validates Supabase JWT and returns authenticated user ID and system role.
+      responses:
+        '200':
+          description: Successfully authenticated driver
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthMeResponse'
+        '401':
+          description: Missing or invalid authorization token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /drivers/me:
+    get:
+      x-status: planned
+      summary: Get driver personal details & verification status
+      description: Returns the driver profile, verification status, and registered vehicle capabilities.
+      responses:
+        '200':
+          description: Driver profile details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverProfile'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '501':
+          $ref: '#/components/responses/NotImplementedError'
+    patch:
+      x-status: planned
+      summary: Update driver personal details
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDriverProfileRequest'
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverProfile'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '501':
+          $ref: '#/components/responses/NotImplementedError'
+
+  /drivers/me/documents:
+    post:
+      x-status: planned
+      summary: Upload KYC & licensing verification documents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadDocumentRequest'
+      responses:
+        '201':
+          description: Document submitted for review
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentRecord'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '501':
+          $ref: '#/components/responses/NotImplementedError'
+
+  /drivers/me/availability:
+    put:
+      x-status: planned
+      summary: Toggle driver online/offline availability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetAvailabilityRequest'
+      responses:
+        '200':
+          description: Availability status successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailabilityStatus'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '501':
+          $ref: '#/components/responses/NotImplementedError'
+
+  /drivers/me/location:
+    post:
+      x-status: planned
+      summary: Ingest driver GPS location telemetry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationPingRequest'
+      responses:
+        '200':
+          description: Location received and ingested
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '501':
+          $ref: '#/components/responses/NotImplementedError'
+
+  /assignments:
+    get:
+      x-status: planned
+      summary: List incoming trip assignment offers
+      responses:
+        '200':
+          description: List of pending or active assignment offers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Assignment'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '501':
+          $ref: '#/components/responses/NotImplementedError'
+
+  /assignments/{id}/accept:
+    post:
+      x-status: planned
+      summary: Accept a trip assignment offer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Assignment accepted, trip initialized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '501':
+          $ref: '#/components/responses/NotImplementedError'
+
+  /assignments/{id}/reject:
+    post:
+      x-status: planned
+      summary: Reject a trip assignment offer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Assignment rejected
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '501':
+          $ref: '#/components/responses/NotImplementedError'
+
+  /trips/{id}:
+    get:
+      x-status: planned
+      summary: Get comprehensive trip details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Trip details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '501':
+          $ref: '#/components/responses/NotImplementedError'
+
+  /trips/{id}/arrived:
+    post:
+      x-status: planned
+      summary: Notify customer that driver has arrived at vehicle location
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Arrival state recorded
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '501':
+          $ref: '#/components/responses/NotImplementedError'
+
+  /trips/{id}/generate-otp:
+    post:
+      x-status: planned
+      summary: Generate a verification OTP for customer vehicle handover
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OTP generated and dispatched to customer
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '501':
+          $ref: '#/components/responses/NotImplementedError'
+
+  /trips/{id}/verify-otp:
+    post:
+      x-status: planned
+      summary: Verify the start OTP provided by the customer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - otp
+              properties:
+                otp:
+                  type: string
+                  example: '482910'
+      responses:
+        '200':
+          description: OTP verified successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '501':
+          $ref: '#/components/responses/NotImplementedError'
+
+  /trips/{id}/handover:
+    post:
+      x-status: planned
+      summary: Record customer vehicle handover inspection (odometer, fuel, condition)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleHandoverRequest'
+      responses:
+        '200':
+          description: Handover logged
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '501':
+          $ref: '#/components/responses/NotImplementedError'
+
+  /trips/{id}/start:
+    post:
+      x-status: planned
+      summary: Mark trip journey started
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Trip marked in progress
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '501':
+          $ref: '#/components/responses/NotImplementedError'
+
+  /trips/{id}/end:
+    post:
+      x-status: planned
+      summary: Mark trip journey completed with final odometer and toll charges
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EndTripRequest'
+      responses:
+        '200':
+          description: Trip marked completed and fare settled
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '501':
+          $ref: '#/components/responses/NotImplementedError'
+
+  /earnings:
+    get:
+      x-status: planned
+      summary: Get driver payout history and earnings ledger
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [daily, weekly, monthly]
+      responses:
+        '200':
+          description: Driver earnings summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EarningsSummary'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '501':
+          $ref: '#/components/responses/NotImplementedError'
+
+  /trips/{id}/sos:
+    post:
+      x-status: planned
+      summary: Trigger emergency SOS alert during a trip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SosAlertRequest'
+      responses:
+        '200':
+          description: SOS alert acknowledged and emergency broadcast initiated
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '501':
+          $ref: '#/components/responses/NotImplementedError'
+
+  /emergency-contacts:
+    get:
+      x-status: planned
+      summary: Retrieve registered emergency contacts
+      responses:
+        '200':
+          description: List of emergency contacts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmergencyContact'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '501':
+          $ref: '#/components/responses/NotImplementedError'
+    post:
+      x-status: planned
+      summary: Register a new emergency contact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEmergencyContactRequest'
+      responses:
+        '201':
+          description: Emergency contact created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmergencyContact'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '501':
+          $ref: '#/components/responses/NotImplementedError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    BadRequestError:
+      description: Bad request / input validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnauthorizedError:
+      description: Authentication required or invalid token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotImplementedError:
+      description: Endpoint planned but not implemented in current phase
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+            - requestId
+          properties:
+            code:
+              type: string
+              example: UNAUTHORIZED
+            message:
+              type: string
+              example: Invalid or expired authorization token
+            requestId:
+              type: string
+              example: a8b38df9-4df1-4a2b-8a8b-18a7c29be191
+            details:
+              type: object
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - uptime
+        - version
+      properties:
+        status:
+          type: string
+          example: ok
+        uptime:
+          type: number
+          example: 124.58
+        version:
+          type: string
+          example: 0.1.0
+        timestamp:
+          type: string
+          format: date-time
+
+    AuthMeResponse:
+      type: object
+      required:
+        - id
+        - role
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 21fa1e97-15d7-463e-b83c-1b7e6fbe6c4f
+        role:
+          type: string
+          example: driver
+        email:
+          type: string
+          format: email
+          example: driver@ryde.in
+
+    DriverProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+        phone:
+          type: string
+        verificationStatus:
+          type: string
+          enum: [unverified, pending, verified, rejected, suspended]
+        vehicleTypes:
+          type: array
+          items:
+            type: string
+            enum: [two_wheeler, three_wheeler, four_wheeler]
+
+    UpdateDriverProfileRequest:
+      type: object
+      properties:
+        fullName:
+          type: string
+        emergencyPhone:
+          type: string
+
+    UploadDocumentRequest:
+      type: object
+      required:
+        - documentType
+        - documentNumber
+        - documentUrl
+      properties:
+        documentType:
+          type: string
+          enum: [driving_license, aadhaar, pan, police_verification]
+        documentNumber:
+          type: string
+        documentUrl:
+          type: string
+          format: uri
+
+    DocumentRecord:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        documentType:
+          type: string
+        status:
+          type: string
+          enum: [pending, verified, rejected]
+
+    SetAvailabilityRequest:
+      type: object
+      required:
+        - isAvailable
+      properties:
+        isAvailable:
+          type: boolean
+        vehicleType:
+          type: string
+          enum: [two_wheeler, three_wheeler, four_wheeler]
+
+    AvailabilityStatus:
+      type: object
+      properties:
+        driverId:
+          type: string
+        isAvailable:
+          type: boolean
+        lastUpdated:
+          type: string
+          format: date-time
+
+    LocationPingRequest:
+      type: object
+      required:
+        - latitude
+        - longitude
+      properties:
+        latitude:
+          type: number
+          example: 12.9716
+        longitude:
+          type: number
+          example: 77.5946
+        heading:
+          type: number
+          example: 180.5
+        speed:
+          type: number
+          example: 25.2
+
+    Assignment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        bookingId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [offered, accepted, rejected, expired, cancelled]
+        pickupAddress:
+          type: string
+        vehicleType:
+          type: string
+
+    Trip:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [dispatched, arrived_at_pickup, vehicle_handover_pending, started, completed, cancelled]
+        pickupLocation:
+          type: object
+        destinationLocation:
+          type: object
+
+    VehicleHandoverRequest:
+      type: object
+      required:
+        - odometerReading
+        - checklistPassed
+      properties:
+        odometerReading:
+          type: number
+        fuelLevel:
+          type: string
+          enum: [low, quarter, half, three_quarters, full]
+        checklistPassed:
+          type: boolean
+        notes:
+          type: string
+
+    EndTripRequest:
+      type: object
+      required:
+        - odometerReading
+      properties:
+        odometerReading:
+          type: number
+        tollAmount:
+          type: number
+        parkingAmount:
+          type: number
+
+    EarningsSummary:
+      type: object
+      properties:
+        driverId:
+          type: string
+        totalEarnings:
+          type: number
+        tripsCompleted:
+          type: integer
+        currency:
+          type: string
+          example: INR
+
+    SosAlertRequest:
+      type: object
+      required:
+        - latitude
+        - longitude
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
+        reason:
+          type: string
+
+    EmergencyContact:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        relationship:
+          type: string
+        phone:
+          type: string
+        isPrimary:
+          type: boolean
+
+    CreateEmergencyContactRequest:
+      type: object
+      required:
+        - name
+        - relationship
+        - phone
+      properties:
+        name:
+          type: string
+        relationship:
+          type: string
+        phone:
+          type: string
+        isPrimary:
+          type: boolean
