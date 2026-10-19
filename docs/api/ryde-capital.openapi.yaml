@@ -223,8 +223,12 @@ paths:
 
   /drivers/me/availability:
     put:
-      x-status: planned
+      x-status: implemented
       summary: Toggle driver online/offline availability
+      description: >
+        Allows an approved driver to go online or offline.
+        Going online requires a recent location update (recorded within the last 10 minutes).
+        Drivers cannot go offline while on an active trip.
       requestBody:
         required: true
         content:
@@ -242,13 +246,21 @@ paths:
           $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-        '501':
-          $ref: '#/components/responses/NotImplementedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '422':
+          description: Cannot go offline during an active trip or missing recent location
 
   /drivers/me/location:
     post:
-      x-status: planned
-      summary: Ingest driver GPS location telemetry
+      x-status: implemented
+      summary: Ingest single GPS location breadcrumb
+      description: >
+        Ingests real-time GPS telemetry (lat, lng, heading, speed, accuracy, recordedAt).
+        Validates coordinate ranges, rejects stale (>10 min) or future (>1 min) timestamps,
+        discards low accuracy points (>100m) or impossible speeds (>200 km/h).
+        Rate-limited to 1 request per second per driver. Upserts into driver_locations and,
+        if driver is on an active trip, appends to trip_locations.
       requestBody:
         required: true
         content:
@@ -258,35 +270,79 @@ paths:
       responses:
         '200':
           description: Location received and ingested
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  recordedAt: { type: string, format: date-time }
         '400':
           $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-        '501':
-          $ref: '#/components/responses/NotImplementedError'
+        '429':
+          description: Telemetry rate limit exceeded
 
-  /assignments:
-    get:
-      x-status: planned
-      summary: List incoming trip assignment offers
+  /drivers/me/location/batch:
+    post:
+      x-status: implemented
+      summary: Ingest batch GPS location breadcrumbs
+      description: Ingests an offline buffer batch of up to 20 location points recorded during connectivity loss.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationBatchRequest'
       responses:
         '200':
-          description: List of pending or active assignment offers
+          description: Batch locations processed
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Assignment'
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  processed: { type: integer, example: 5 }
+        '400':
+          $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-        '501':
-          $ref: '#/components/responses/NotImplementedError'
+        '429':
+          description: Telemetry rate limit exceeded
 
-  /assignments/{id}/accept:
-    post:
-      x-status: planned
-      summary: Accept a trip assignment offer
+  /assignments:
+    get:
+      x-status: implemented
+      summary: List incoming trip assignment offers and history
+      description: Returns the driver's current active offer (if any) and a paginated history of past assignments.
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Active offer and assignment history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignmentsListResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /assignments/{id}/route:
+    get:
+      x-status: implemented
+      summary: Preview route polyline and ETA for an active offer
+      description: Returns pickup/destination coordinates, addresses, distance, duration, and encoded route polyline without exposing customer private contact information.
       parameters:
         - name: id
           in: path
@@ -296,20 +352,49 @@ paths:
             format: uuid
       responses:
         '200':
-          description: Assignment accepted, trip initialized
+          description: Route preview details
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Assignment'
+                $ref: '#/components/schemas/AssignmentRouteResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-        '501':
-          $ref: '#/components/responses/NotImplementedError'
+        '404':
+          description: Assignment offer not found
+
+  /assignments/{id}/accept:
+    post:
+      x-status: implemented
+      summary: Atomically accept a trip assignment offer
+      description: >
+        Accepts an assignment offer using row-level locks. Validates offer is unexpired and offered,
+        the booking is in searching status, and driver is online without active trips.
+        Transitions assignment to accepted, booking to driver_assigned, creates a trip record,
+        and sets driver status to on_trip. If two drivers race, exactly one succeeds; the second receives 409 Conflict.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Assignment accepted, trip created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssignmentAcceptResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
 
   /assignments/{id}/reject:
     post:
-      x-status: planned
+      x-status: implemented
       summary: Reject a trip assignment offer
+      description: Declines an offered assignment with an optional reason, marking the assignment rejected and enabling the matching engine to dispatch to the next nearest driver.
       parameters:
         - name: id
           in: path
@@ -325,13 +410,22 @@ paths:
               properties:
                 reason:
                   type: string
+                  example: distance_too_far
       responses:
         '200':
           description: Assignment rejected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  assignmentId: { type: string, format: uuid }
+                  status: { type: string, example: rejected }
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-        '501':
-          $ref: '#/components/responses/NotImplementedError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
 
   /trips/{id}:
     get:
@@ -713,6 +807,18 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+    ForbiddenError:
+      description: Access forbidden (insufficient permissions or unapproved driver)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ConflictError:
+      description: Resource state conflict or race condition
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
     NotImplementedError:
       description: Endpoint planned but not implemented in current phase
       content:
@@ -962,22 +1068,25 @@ components:
       properties:
         isAvailable:
           type: boolean
-        vehicleType:
+        reason:
           type: string
-          enum: [two_wheeler, three_wheeler, four_wheeler]
 
     AvailabilityStatus:
       type: object
       properties:
         driverId:
           type: string
-        isAvailable:
+          format: uuid
+        isOnline:
           type: boolean
-        lastUpdated:
+        status:
+          type: string
+          enum: [offline, available, on_trip, suspended]
+        updatedAt:
           type: string
           format: date-time
 
-    LocationPingRequest:
+    LocationBreadcrumb:
       type: object
       required:
         - latitude
@@ -985,18 +1094,51 @@ components:
       properties:
         latitude:
           type: number
+          minimum: -90
+          maximum: 90
           example: 12.9716
         longitude:
           type: number
+          minimum: -180
+          maximum: 180
           example: 77.5946
         heading:
           type: number
+          nullable: true
+          minimum: 0
+          maximum: 360
           example: 180.5
         speed:
           type: number
+          nullable: true
+          minimum: 0
+          maximum: 200
           example: 25.2
+        accuracy:
+          type: number
+          nullable: true
+          maximum: 100
+          example: 15.0
+        recordedAt:
+          type: string
+          format: date-time
 
-    Assignment:
+    LocationPingRequest:
+      $ref: '#/components/schemas/LocationBreadcrumb'
+
+    LocationBatchRequest:
+      type: object
+      required:
+        - locations
+      properties:
+        locations:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/LocationBreadcrumb'
+
+    AssignmentOffer:
       type: object
       properties:
         id:
@@ -1005,13 +1147,88 @@ components:
         bookingId:
           type: string
           format: uuid
-        status:
+        assignmentStatus:
           type: string
           enum: [offered, accepted, rejected, expired, cancelled]
         pickupAddress:
           type: string
+        destinationAddress:
+          type: string
         vehicleType:
           type: string
+        estimatedFare:
+          type: number
+        distanceToPickupKm:
+          type: number
+        etaToPickupMinutes:
+          type: integer
+        offeredAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+
+    AssignmentsListResponse:
+      type: object
+      properties:
+        activeOffer:
+          $ref: '#/components/schemas/AssignmentOffer'
+          nullable: true
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssignmentOffer'
+        pagination:
+          type: object
+          properties:
+            page: { type: integer }
+            limit: { type: integer }
+            total: { type: integer }
+
+    AssignmentRouteResponse:
+      type: object
+      properties:
+        polyline:
+          type: string
+          description: Google encoded polyline string
+        distanceMeters:
+          type: number
+        durationSeconds:
+          type: number
+        pickupAddress:
+          type: string
+        destinationAddress:
+          type: string
+        pickupCoords:
+          type: object
+          properties:
+            latitude: { type: number }
+            longitude: { type: number }
+        destinationCoords:
+          type: object
+          properties:
+            latitude: { type: number }
+            longitude: { type: number }
+
+    AssignmentAcceptResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        assignmentId:
+          type: string
+          format: uuid
+        bookingId:
+          type: string
+          format: uuid
+        tripId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          example: accepted
 
     Trip:
       type: object

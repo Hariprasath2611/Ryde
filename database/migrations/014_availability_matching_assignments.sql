@@ -195,7 +195,106 @@ $$;
 -- Grant execution to authenticated and service_role
 GRANT EXECUTE ON FUNCTION public.accept_driver_assignment(UUID, UUID) TO authenticated, service_role;
 
--- 6. Enable Realtime on driver_assignments if publication exists
+-- 6. Helper function to record driver location and append to trip_locations if on active trip
+CREATE OR REPLACE FUNCTION public.record_driver_location(
+  p_driver_id UUID,
+  p_lat DOUBLE PRECISION,
+  p_lng DOUBLE PRECISION,
+  p_heading DOUBLE PRECISION DEFAULT NULL,
+  p_speed DOUBLE PRECISION DEFAULT NULL,
+  p_recorded_at TIMESTAMPTZ DEFAULT now()
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  v_active_trip_id UUID;
+BEGIN
+  -- 1. Upsert into driver_locations
+  INSERT INTO public.driver_locations (
+    driver_id,
+    location,
+    heading,
+    speed,
+    updated_at
+  ) VALUES (
+    p_driver_id,
+    ST_SetSRID(ST_MakePoint(p_lng, p_lat), 4326)::geography,
+    p_heading,
+    p_speed,
+    p_recorded_at
+  )
+  ON CONFLICT (driver_id) DO UPDATE SET
+    location = EXCLUDED.location,
+    heading = EXCLUDED.heading,
+    speed = EXCLUDED.speed,
+    updated_at = EXCLUDED.updated_at;
+
+  -- 2. Check if driver is on an active trip, append to trip_locations
+  SELECT id INTO v_active_trip_id
+  FROM public.trips
+  WHERE driver_id = p_driver_id
+    AND trip_status IN ('assigned', 'dispatched', 'arrived_at_pickup', 'vehicle_handover_pending', 'started')
+  LIMIT 1;
+
+  IF v_active_trip_id IS NOT NULL THEN
+    INSERT INTO public.trip_locations (
+      trip_id,
+      driver_id,
+      location,
+      speed,
+      recorded_at
+    ) VALUES (
+      v_active_trip_id,
+      p_driver_id,
+      ST_SetSRID(ST_MakePoint(p_lng, p_lat), 4326)::geography,
+      p_speed,
+      p_recorded_at
+    );
+  END IF;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.record_driver_location TO service_role, authenticated;
+
+-- 7. Helper function to set stale online drivers (no location update for 2 minutes) offline
+CREATE OR REPLACE FUNCTION public.set_stale_drivers_offline(
+  p_threshold_interval INTERVAL DEFAULT INTERVAL '2 minutes'
+)
+RETURNS INTEGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  v_updated_count INTEGER;
+BEGIN
+  WITH stale_drivers AS (
+    SELECT d.id
+    FROM public.drivers d
+    LEFT JOIN public.driver_locations dl ON dl.driver_id = d.id
+    WHERE d.availability_status = 'online'
+      AND (dl.updated_at IS NULL OR dl.updated_at < (now() - p_threshold_interval))
+      AND NOT EXISTS (
+        SELECT 1 FROM public.trips t
+        WHERE t.driver_id = d.id
+          AND t.trip_status IN ('assigned', 'dispatched', 'arrived_at_pickup', 'vehicle_handover_pending', 'started')
+      )
+  )
+  UPDATE public.drivers
+  SET availability_status = 'offline', updated_at = now()
+  WHERE id IN (SELECT id FROM stale_drivers);
+
+  GET DIAGNOSTICS v_updated_count = ROW_COUNT;
+  RETURN v_updated_count;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.set_stale_drivers_offline TO service_role;
+
+-- 8. Enable Realtime on driver_assignments if publication exists
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
@@ -207,3 +306,4 @@ BEGIN
     END IF;
   END IF;
 END $$;
+

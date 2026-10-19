@@ -2,22 +2,35 @@
 // Background Jobs & Scheduled Tasks Registration
 
 import { checkLicenseExpiryJob } from './licenseExpiryCheck.js';
+import { checkStaleDriversJob } from './staleDriverCheck.js';
 
-export { checkLicenseExpiryJob };
+export { checkLicenseExpiryJob, checkStaleDriversJob };
 
 export function startBackgroundJobs(): void {
   // In development/production, schedule daily license expiry check
   const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+  const THIRTY_SECONDS_MS = 30 * 1000;
 
-  // Run on startup non-blocking
-  checkLicenseExpiryJob().catch(err => {
+  // Run initial checks non-blocking
+  checkLicenseExpiryJob().catch((err) => {
     console.warn('Initial license expiry check failed:', err);
   });
 
-  // Schedule daily interval
+  checkStaleDriversJob().catch((err) => {
+    console.warn('Initial stale driver check failed:', err);
+  });
+
+  // Schedule daily interval for license expiry
   setInterval(() => {
-    checkLicenseExpiryJob().catch(err => {
+    checkLicenseExpiryJob().catch((err) => {
       console.error('Scheduled daily license expiry check error:', err);
     });
   }, TWENTY_FOUR_HOURS_MS);
+
+  // Schedule 30-second interval for stale driver check
+  setInterval(() => {
+    checkStaleDriversJob().catch((err) => {
+      console.error('Scheduled stale driver check error:', err);
+    });
+  }, THIRTY_SECONDS_MS);
 }

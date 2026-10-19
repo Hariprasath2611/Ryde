@@ -46,3 +46,20 @@ export const uploadRateLimiter = rateLimit({
     });
   },
 });
+
+export const locationRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 120, // up to 120 requests per minute per driver
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.id || req.ip || 'anonymous',
+  handler: (req, res) => {
+    res.status(429).json({
+      error: {
+        code: 'TOO_MANY_REQUESTS',
+        message: 'Location update rate limit exceeded, please slow down pings',
+        requestId: req.id || req.requestId || '',
+      },
+    });
+  },
+});

@@ -342,6 +342,7 @@ export interface Database {
           distance_to_customer_m: number | null;
           estimated_arrival_s: number | null;
           assignment_status: AssignmentStatus;
+          rejection_reason: string | null;
           expires_at: string | null;
           created_at: string;
           updated_at: string;
@@ -353,6 +354,7 @@ export interface Database {
           distance_to_customer_m?: number | null;
           estimated_arrival_s?: number | null;
           assignment_status?: AssignmentStatus;
+          rejection_reason?: string | null;
           expires_at?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -705,6 +707,13 @@ export interface Database {
           driver_id: string;
           distance_m: number;
         }[];
+      };
+      accept_driver_assignment: {
+        Args: {
+          p_assignment_id: string;
+          p_driver_id: string;
+        };
+        Returns: Json;
       };
     };
     Enums: {

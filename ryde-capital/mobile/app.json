@@ -8,14 +8,37 @@
     "scheme": "rydecapital",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.ryde.capital",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Ryde Capital requires your location to navigate to pickup locations and track active customer trips.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Ryde Capital requires background location to match you with nearby customer ride offers even when the app is in background.",
+        "UIBackgroundModes": ["location", "fetch"]
+      },
+      "config": {
+        "googleMapsApiKey": "AIzaSy_MOCK_RESTRICTED_IOS_MAPS_KEY_FOR_DEV"
+      }
     },
     "android": {
+      "package": "com.ryde.capital",
       "adaptiveIcon": {
         "backgroundColor": "#0F172A",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "VIBRATE"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSy_MOCK_RESTRICTED_ANDROID_MAPS_KEY_FOR_DEV"
+        }
       },
       "predictiveBackGestureEnabled": false
     },
@@ -25,12 +48,20 @@
     },
     "plugins": [
       "expo-router",
+      "expo-dev-client",
       [
         "expo-splash-screen",
         {
           "backgroundColor": "#0F172A",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Ryde Capital to use your location to receive ride offers and navigate customer trips.",
+          "isAndroidForegroundServiceEnabled": true
         }
       ]
     ],

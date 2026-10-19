@@ -19,6 +19,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "setup:env": "node scripts/setup-env.js",
+    "simulator": "tsx scripts/booking-simulator/index.ts",
     "db:types": "supabase gen types typescript --local > shared/src/types/database.types.ts",
     "postinstall": "npm run build -w shared && npm --prefix ryde-capital/mobile install"
   },

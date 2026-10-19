@@ -126,3 +126,52 @@ This document records the foundational technical and architectural decisions for
 2. **License Classes & MV Act Rules**: License classes map to platform vehicle types according to the Motor Vehicles Act (MCWG -> two_wheeler, 3W-CAB / AUTO -> three_wheeler, LMV -> four_wheeler).
 3. **Signed URL TTL**: Admin document review URLs are strictly short-lived (60 seconds) to prevent leakage of sensitive KYC documents.
 4. **Mobile Route Guarding**: Drivers with `onboarding_status !== 'approved'` are restricted to the `/(onboarding)` flow and prevented from entering the dashboard tabs.
+
+---
+
+## ADR 010: Availability, Live Telemetry, Matching Engine, Atomic Assignments & Maps Integration
+
+- **Status**: Accepted
+- **Context**: Phase 3 requires approved drivers to go online on a live map, stream high-frequency GPS telemetry, receive ride offers from the backend matching engine, and safely accept/reject offers with guaranteed atomic concurrency.
+- **Decision**:
+  1. **Availability Lifecycle**:
+     - Only approved drivers (`onboarding_status = 'approved'`) can toggle availability.
+     - Going online requires a recent location breadcrumb recorded in the DB within the last 10 minutes.
+     - Drivers cannot go offline during an active trip (`status IN ('assigned', 'dispatched', 'arrived_at_pickup', 'started')`).
+     - A background cron job (`staleDriverCheck`) sweeps every 30 seconds and automatically sets drivers offline if their location has not updated in the past 2 minutes.
+  2. **Zero-Cost Telemetry Stream**:
+     - Driver location updates stream directly to the application database via `POST /drivers/me/location` and `POST /drivers/me/location/batch` (up to 20 breadcrumbs for offline reconnections).
+     - Location updates are written to `driver_locations` (upsert) and appended to `trip_locations` when the driver is on an active trip.
+     - Location writes never invoke external Google Maps APIs, eliminating per-ping map telemetry costs.
+     - Telemetry is validated against coordinate bounds (lat: -90 to 90, lng: -180 to 180), timestamp staleness (>10m rejected) or future drift (>1m rejected), impossible vehicular speeds (>200 km/h dropped), and poor accuracy (>100m dropped), with a per-driver rate limit (1 req/sec).
+  3. **Maps Service Architecture & Fallbacks**:
+     - Google Directions and Distance Matrix APIs are centralized in `@ryde/shared/services/maps` with a 15-minute in-memory LRU cache to minimize API billing.
+     - Retries with exponential backoff and timeouts ensure resilience against transient network failures.
+     - If Google APIs are unavailable, the service automatically falls back to an offline Haversine distance calculator with estimated urban traffic speeds and straight-line polyline encoding.
+     - The mobile client is strictly forbidden from directly calling Google Maps APIs for routing, pricing, or ETA calculations.
+  4. **Matching Engine Worker**:
+     - A background matching worker polls for `bookings` with status `searching` using PostgreSQL `FOR UPDATE SKIP LOCKED` to allow multiple concurrent worker instances without duplicate offers.
+     - For each eligible booking, the worker queries `nearest_available_drivers` within an expanding radius (3 km -> 5 km -> 8 km).
+     - Offers are dispatched sequentially to ONE driver at a time, nearest first, with a configurable 20-second timeout.
+     - Each offer inserts a `driver_assignments` row with precalculated distance and ETA to pickup, triggering an instant push to the driver's device via Supabase Realtime Change Data Capture (CDC).
+     - Customer phone numbers are strictly stripped from assignment offers to preserve passenger privacy before trip confirmation.
+     - If all candidate drivers reject or time out across all radius steps, the booking transitions to `no_driver_found`.
+  5. **Atomic Assignment Concurrency**:
+     - `POST /assignments/:id/accept` executes an atomic PostgreSQL transaction via `accept_driver_assignment(assignment_id, driver_id)`.
+     - Uses row-level locks on `driver_assignments`, `bookings`, and `drivers` to verify that the offer is unexpired and still `offered`, the booking is still `searching`, and the driver has no active trip.
+     - If two drivers race to accept the same booking, exactly one succeeds (creates the trip and updates booking to `driver_assigned`); the second receives a clean 409 Conflict (`BOOKING_ALREADY_ASSIGNED`).
+  6. **Mobile Live Map & Route Preview**:
+     - Mobile application uses Expo Dev Client (`expo-dev-client`) with separate restricted Google Maps API keys for Android and iOS.
+     - Home screen features full-screen `react-native-maps` with custom vehicle markers, status banners (Offline, Online & Waiting, Weak GPS), and interactive toggle.
+     - Adaptive location tracking via `expo-location` and `expo-task-manager` switches between 25-second idle intervals and 5-second active trip intervals, with an offline buffer queue.
+     - Ride offers display an in-app modal with an optional "Preview Full Route" in-app modal (rendering pickup/destination pins and decoded polyline) without leaving the app or resetting the server-synchronized countdown timer.
+
+---
+
+### Phase 3 Assumptions
+
+1. **Google Maps API Cost Optimization**: Google APIs are called strictly server-side for routing and ETAs with an aggressive 15-minute LRU cache. In-flight GPS breadcrumbs are persisted directly in Postgres PostGIS, keeping per-ping telemetry cost at $0.
+2. **Realtime CDC Delivery**: Supabase Realtime broadcasts on `driver_assignments` filter events by `driver_id=eq.{driverId}`, relying on Row-Level Security to prevent cross-driver offer snooping.
+3. **Offer Timeout Defaults**: The offer countdown defaults to 20 seconds. If neither accepted nor rejected, the matching engine marks the offer `expired` on its next tick and cascades to the next nearest candidate.
+4. **Simulator-Driven Dispatch**: Because the customer app is not yet deployed, all booking generation is driven by the CLI booking simulator (`scripts/booking-simulator`), which provisions bookings with status `searching` in proximity to online drivers.
+

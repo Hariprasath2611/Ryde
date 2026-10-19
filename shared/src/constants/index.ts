@@ -55,11 +55,14 @@ export type AvailabilityStatus = (typeof AVAILABILITY_STATUS)[keyof typeof AVAIL
 
 export const BOOKING_STATUS = {
   PENDING: 'pending',
+  SEARCHING: 'searching',
   ASSIGNED: 'assigned',
+  DRIVER_ASSIGNED: 'driver_assigned',
   DRIVER_ARRIVED: 'driver_arrived',
   IN_PROGRESS: 'in_progress',
   COMPLETED: 'completed',
   CANCELLED: 'cancelled',
+  NO_DRIVER_FOUND: 'no_driver_found',
 } as const;
 
 export type BookingStatus = (typeof BOOKING_STATUS)[keyof typeof BOOKING_STATUS];
@@ -75,11 +78,21 @@ export const ASSIGNMENT_STATUS = {
 export type AssignmentStatus = (typeof ASSIGNMENT_STATUS)[keyof typeof ASSIGNMENT_STATUS];
 
 export const TRIP_STATUS = {
+  ASSIGNED: 'assigned',
+  HEADING_TO_PICKUP: 'heading_to_pickup',
+  ARRIVED: 'arrived',
+  OTP_VERIFIED: 'otp_verified',
+  HANDOVER_DONE: 'handover_done',
+  IN_PROGRESS: 'in_progress',
+  COMPLETED: 'completed',
+  CANCELLED_BY_DRIVER: 'cancelled_by_driver',
+  CANCELLED_BY_CUSTOMER: 'cancelled_by_customer',
+  CANCELLED_BY_SYSTEM: 'cancelled_by_system',
+  // Backward-compatible legacy aliases
   DISPATCHED: 'dispatched',
   ARRIVED_AT_PICKUP: 'arrived_at_pickup',
   VEHICLE_HANDOVER_PENDING: 'vehicle_handover_pending',
   STARTED: 'started',
-  COMPLETED: 'completed',
   CANCELLED: 'cancelled',
 } as const;
 

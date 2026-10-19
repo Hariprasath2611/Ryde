@@ -11,7 +11,16 @@ const router = Router();
 router.use(authMiddleware);
 router.use(requireRole(ROLES.DRIVER));
 
-// Supports both direct mount PUT / and mounted path /availability or /drivers/me/availability
+// GET /api/v1/drivers/me/availability
+router.get('/', (req, res, next) => {
+  availabilityController.getAvailability(req, res, next);
+});
+
+router.get('/availability', (req, res, next) => {
+  availabilityController.getAvailability(req, res, next);
+});
+
+// PUT /api/v1/drivers/me/availability
 router.put('/', validate({ body: setAvailabilitySchema }), (req, res, next) => {
   availabilityController.setAvailability(req, res, next);
 });
