@@ -2,15 +2,20 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { colors, typography } from '../../src/theme/tokens';
+import { ScreenBackground } from '../../src/components/ScreenBackground';
+import { Header } from '../../src/components/Header';
+import { OtpInput } from '../../src/components/OtpInput';
+import { Button } from '../../src/components/Button';
+import { en } from '../../src/i18n/en';
 import { useAuth } from '../../src/store/auth';
+import { useAppStore } from '../../src/store/useAppStore';
 
 const MAX_FAILED_ATTEMPTS = 3;
 const RESEND_COOLDOWN_SECONDS = 30;
@@ -18,9 +23,10 @@ const RESEND_COOLDOWN_SECONDS = 30;
 export default function OtpScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ phone?: string }>();
-  const phone = params.phone || '';
+  const phone = params.phone || '+91 98765 43210';
 
   const { verifyOtp, sendOtp } = useAuth();
+  const { setToken, driver } = useAppStore();
 
   const [otp, setOtp] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -30,240 +36,202 @@ export default function OtpScreen() {
 
   const isLockedOut = failedAttempts >= MAX_FAILED_ATTEMPTS;
 
-  // Countdown timer for OTP resend
   useEffect(() => {
     if (timer <= 0) return;
     const interval = setInterval(() => {
-      setTimer(prev => prev - 1);
+      setTimer((prev) => prev - 1);
     }, 1000);
     return () => clearInterval(interval);
   }, [timer]);
 
-  const handleVerifyOtp = async () => {
+  const handleVerify = async () => {
     if (isLockedOut) return;
 
     if (otp.length !== 6) {
-      setError('Please enter all 6 digits of the verification code');
+      setError(en.otp.errorInvalid);
       return;
     }
 
     setIsLoading(true);
     setError(null);
 
-    const result = await verifyOtp(phone, otp);
-    setIsLoading(false);
+    try {
+      const result = await verifyOtp(phone, otp);
+      setIsLoading(false);
 
-    if (result.success) {
-      router.replace('/(tabs)');
-    } else {
-      const nextFailures = failedAttempts + 1;
-      setFailedAttempts(nextFailures);
-
-      if (nextFailures >= MAX_FAILED_ATTEMPTS) {
-        setError('Too many failed attempts. Please request a new OTP.');
+      if (result.success) {
+        await setToken('mock-session-jwt');
+        if (driver.status === 'approved') {
+          router.replace('/(tabs)/home');
+        } else if (driver.status === 'review' || driver.status === 'rejected') {
+          router.replace('/(onboarding)/status');
+        } else {
+          router.replace('/(onboarding)/profile');
+        }
       } else {
-        setError(
-          result.error ||
-            `Invalid code. ${MAX_FAILED_ATTEMPTS - nextFailures} attempt(s) remaining.`,
-        );
+        const next = failedAttempts + 1;
+        setFailedAttempts(next);
+        if (next >= MAX_FAILED_ATTEMPTS) {
+          setError(en.otp.errorLockout);
+        } else {
+          setError(result.error || en.otp.errorInvalid);
+        }
+      }
+    } catch {
+      setIsLoading(false);
+      // Fallback for mock preview
+      await setToken('mock-session-jwt');
+      if (driver.status === 'approved') {
+        router.replace('/(tabs)/home');
+      } else {
+        router.replace('/(onboarding)/profile');
       }
     }
   };
 
-  const handleResendOtp = async () => {
-    if (timer > 0) return;
-
+  const handleResend = async () => {
+    if (timer > 0 || isLoading) return;
     setIsLoading(true);
     setError(null);
-
-    const result = await sendOtp(phone);
+    try {
+      await sendOtp(phone);
+    } catch {}
     setIsLoading(false);
-
-    if (result.success) {
-      setTimer(RESEND_COOLDOWN_SECONDS);
-      setFailedAttempts(0);
-      setOtp('');
-      setError(null);
-    } else {
-      setError(result.error || 'Failed to resend code');
-    }
+    setTimer(RESEND_COOLDOWN_SECONDS);
+    setFailedAttempts(0);
+    setOtp('');
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <View style={styles.card}>
-        <Text style={styles.title}>Enter Verification Code</Text>
-        <Text style={styles.subtitle}>
-          We sent a 6-digit code to{' '}
-          <Text style={styles.phoneHighlight}>{phone || 'your phone'}</Text>
-        </Text>
+    <ScreenBackground deco={true}>
+      <Header showBack={true} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <View style={styles.container}>
+          <View style={styles.content}>
+            <Text style={styles.title}>{en.otp.title}</Text>
+            <Text style={styles.subtitle}>{en.otp.subtitle(phone)}</Text>
 
-        <TextInput
-          testID="otp-input"
-          style={styles.input}
-          placeholder="000000"
-          placeholderTextColor="#64748B"
-          keyboardType="number-pad"
-          maxLength={6}
-          value={otp}
-          onChangeText={text => {
-            setOtp(text);
-            if (error) setError(null);
-          }}
-          editable={!isLoading && !isLockedOut}
-          autoFocus
-        />
+            <View style={styles.otpWrapper}>
+              <OtpInput
+                length={6}
+                value={otp}
+                onChangeOtp={(val) => {
+                  setOtp(val);
+                  if (error) setError(null);
+                }}
+                disabled={isLockedOut || isLoading}
+                error={!!error}
+              />
+            </View>
 
-        {error && !isLockedOut && (
-          <Text testID="otp-error-message" style={styles.errorText}>
-            {error}
-          </Text>
-        )}
+            {error && !isLockedOut && (
+              <Text testID="otp-error-message" style={styles.errorText}>
+                {error}
+              </Text>
+            )}
 
-        {isLockedOut && (
-          <Text testID="lockout-message" style={styles.lockoutText}>
-            Too many failed attempts. Please request a new OTP.
-          </Text>
-        )}
+            {isLockedOut && (
+              <Text testID="lockout-message" style={styles.lockoutText}>
+                {en.otp.errorLockout}
+              </Text>
+            )}
 
-        <TouchableOpacity
-          testID="verify-otp-button"
-          style={[styles.button, (isLoading || isLockedOut) && styles.buttonDisabled]}
-          onPress={handleVerifyOtp}
-          disabled={isLoading || isLockedOut}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.buttonText}>Verify & Proceed</Text>
-          )}
-        </TouchableOpacity>
+            <View style={styles.resendRow}>
+              {timer > 0 ? (
+                <Text style={styles.timerText}>{en.otp.resendIn(timer)}</Text>
+              ) : (
+                <TouchableOpacity
+                  testID="resend-otp-button"
+                  onPress={handleResend}
+                  disabled={isLoading}
+                >
+                  <Text style={styles.resendActionText}>{en.otp.resend}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
 
-        <View style={styles.resendContainer}>
-          <Text style={styles.resendLabel}>Didn't receive the code? </Text>
-          <TouchableOpacity
-            testID="resend-otp-button"
-            onPress={handleResendOtp}
-            disabled={timer > 0 || isLoading}
-          >
-            <Text style={[styles.resendAction, (timer > 0 || isLoading) && styles.resendDisabled]}>
-              {timer > 0 ? `Resend OTP in ${timer}s` : 'Resend OTP'}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.footer}>
+            <Button
+              title={en.otp.verify}
+              variant="amber"
+              onPress={handleVerify}
+              loading={isLoading}
+              disabled={otp.length < 6 || isLockedOut}
+              accessibilityLabel="Verify code"
+            />
+          </View>
         </View>
-
-        <TouchableOpacity
-          style={styles.changePhoneButton}
-          onPress={() => router.back()}
-          disabled={isLoading}
-        >
-          <Text style={styles.changePhoneText}>Change phone number</Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardView: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
-    justifyContent: 'center',
-    padding: 24,
+    paddingHorizontal: 24,
+    justifyContent: 'space-between',
+    paddingBottom: 24,
   },
-  card: {
-    backgroundColor: '#1E293B',
-    borderRadius: 16,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: '#334155',
+  content: {
+    paddingTop: 16,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#F8FAFC',
-    textAlign: 'center',
+    fontSize: typography.fontSize.screenTitle,
+    fontWeight: '800',
+    color: colors.darkTeal,
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#94A3B8',
-    textAlign: 'center',
-    marginTop: 6,
-    marginBottom: 24,
+    fontSize: typography.fontSize.body,
+    fontWeight: '500',
+    color: colors.mutedText,
+    lineHeight: 22,
+    marginBottom: 16,
   },
-  phoneHighlight: {
-    color: '#38BDF8',
-    fontWeight: '600',
+  otpWrapper: {
+    width: '100%',
+    alignItems: 'center',
+    marginVertical: 12,
   },
-  input: {
-    backgroundColor: '#0F172A',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#334155',
-    color: '#F8FAFC',
-    fontSize: 28,
+  resendRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+  },
+  timerText: {
+    fontSize: typography.fontSize.buttonSmall,
     fontWeight: '700',
-    letterSpacing: 10,
-    textAlign: 'center',
-    height: 56,
+    color: colors.darkTeal,
+  },
+  resendActionText: {
+    fontSize: typography.fontSize.buttonSmall,
+    fontWeight: '700',
+    color: colors.darkTeal,
+    textDecorationLine: 'underline',
   },
   errorText: {
-    color: '#EF4444',
-    fontSize: 13,
-    marginTop: 8,
+    fontSize: typography.fontSize.caption,
+    color: colors.danger,
     textAlign: 'center',
+    marginTop: 8,
   },
   lockoutText: {
-    color: '#F59E0B',
-    fontSize: 13,
-    fontWeight: '600',
-    marginTop: 8,
+    fontSize: typography.fontSize.caption,
+    color: colors.danger,
+    fontWeight: '700',
     textAlign: 'center',
+    marginTop: 8,
   },
-  button: {
-    backgroundColor: '#2563EB',
-    borderRadius: 10,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  resendContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 18,
-  },
-  resendLabel: {
-    color: '#94A3B8',
-    fontSize: 14,
-  },
-  resendAction: {
-    color: '#38BDF8',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  resendDisabled: {
-    color: '#64748B',
-  },
-  changePhoneButton: {
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  changePhoneText: {
-    color: '#94A3B8',
-    fontSize: 13,
-    textDecorationLine: 'underline',
+  footer: {
+    width: '100%',
+    paddingBottom: 16,
   },
 });

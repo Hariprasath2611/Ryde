@@ -135,3 +135,6 @@ export function getLocale(): SupportedLocale {
 export function t(): TranslationDictionary {
   return translations[currentLocale] || translations.en;
 }
+
+export { en } from './en';
+export default en;

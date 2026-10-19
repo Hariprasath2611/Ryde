@@ -297,6 +297,14 @@ This document records the foundational technical and architectural decisions for
      - Cross-platform navigation handoff tested with and without Google Maps installed (smooth fallback to Apple Maps / browser).
      - 30-minute background tracking endurance test passed with 99.4% GPS continuity and low battery drain (2.1% in 30 mins, ~4.2%/hour).
      - Global `ErrorBoundary`, `OfflineBanner`, `ForceUpdateModal` (`GET /api/v1/app/version`), and i18n scaffolding (English, Hindi, Kannada, Tamil) implemented.
+---
 
+## ADR 014: External Google Maps Handoff & Two-Wheeler Navigation Mode
 
-
+- **Status**: Accepted
+- **Context**: Drivers navigating to pickup or drop locations can choose external turn-by-turn guidance via Google Maps. India has widespread motorcycle/scooter usage for mobility.
+- **Decision**:
+  1. Universal URL (`https://www.google.com/maps/dir/?api=1&destination=LAT,LNG&travelmode=two-wheeler&dir_action=navigate`) supports `travelmode=two-wheeler` for two-wheelers in India, falling back to `travelmode=driving`.
+  2. On Android: Intent `google.navigation:q=LAT,LNG&mode=l` (or `mode=2`) targets two-wheeler navigation directly in the native Google Maps app, with `mode=d` for four-wheelers. If native intent fails, universal URL is launched.
+  3. On iOS: `comgooglemaps://?daddr=LAT,LNG&directionsmode=two-wheeler` is used when `canOpenURL` allows it (`LSApplicationQueriesSchemes: ["comgooglemaps"]`), falling back to universal URL.
+  4. Privacy & Safety: Driver live GPS is used by omitting `origin` parameter. Destination coordinates are passed without any passenger personal data (name, phone number, address text are never sent to Google). External handoff is strictly blocked before an offer is accepted.
