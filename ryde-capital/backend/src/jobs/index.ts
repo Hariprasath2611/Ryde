@@ -4,8 +4,15 @@
 import { checkLicenseExpiryJob } from './licenseExpiryCheck.js';
 import { checkStaleDriversJob } from './staleDriverCheck.js';
 import { checkStaleWaitingTripsJob } from './staleWaitingTripCheck.js';
+import { settlePendingEarningsJob } from './settlePendingEarningsJob.js';
 
-export { checkLicenseExpiryJob, checkStaleDriversJob, checkStaleWaitingTripsJob };
+export {
+  checkLicenseExpiryJob,
+  checkStaleDriversJob,
+  checkStaleWaitingTripsJob,
+  settlePendingEarningsJob,
+};
+
 
 export function startBackgroundJobs(): void {
   // In development/production, schedule daily license expiry check

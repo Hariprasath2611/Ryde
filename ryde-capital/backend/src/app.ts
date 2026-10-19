@@ -13,6 +13,8 @@ import { assignmentRoutes } from './modules/assignments/routes.js';
 import { tripRoutes } from './modules/trips/routes.js';
 import { locationRoutes } from './modules/location/routes.js';
 import { earningRoutes } from './modules/earnings/routes.js';
+import { notificationRoutes } from './modules/notifications/routes.js';
+import { complaintRoutes } from './modules/complaints/routes.js';
 import { safetyRoutes } from './modules/safety/routes.js';
 import { adminRoutes } from './modules/admin/routes.js';
 
@@ -47,7 +49,11 @@ app.use('/api/v1/location', locationRoutes);
 app.use('/api/v1/assignments', assignmentRoutes);
 app.use('/api/v1/trips', tripRoutes);
 app.use('/api/v1/earnings', earningRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/complaints', complaintRoutes);
 app.use('/api/v1', safetyRoutes);
+app.use('/', safetyRoutes); // allows unauthenticated /public/track/:token directly
+
 
 // Catch-all 404 handler
 app.use((req, res) => {

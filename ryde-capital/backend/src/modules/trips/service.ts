@@ -6,6 +6,7 @@ import {
   BadRequestError,
   NotFoundError,
   ForbiddenError,
+  ConflictError,
   mapsService,
   calculateFare,
   mockPaymentProvider,
@@ -29,7 +30,9 @@ import type {
   EndTripInput,
   CancelTripInput,
   TripHistoryQuery,
+  RateCustomerInput,
 } from './schema.js';
+
 
 export interface LocationCoord {
   latitude: number;
@@ -685,6 +688,42 @@ export class TripsService {
 
     return contact;
   }
+
+  // ==========================================================================
+  // 12. RATE CUSTOMER (PHASE 5)
+  // ==========================================================================
+
+  async rateCustomer(userId: string, tripId: string, input: RateCustomerInput) {
+    const driver = await this.getDriverOrThrow(userId);
+    const trip = await this.getOwnedTripOrThrow(driver.id, tripId);
+
+    if (trip.trip_status !== 'completed') {
+      throw new BadRequestError('Only completed trips can be rated');
+    }
+
+    const existingRating = await this.repo.getTripRating(trip.id, userId);
+    if (existingRating) {
+      throw new ConflictError('This trip has already been rated');
+    }
+
+    // Lookup customer profile/user id
+    const contact = await this.repo.getCustomerContact(trip.id);
+    const toUserId = contact?.customerId || trip.customer_id;
+
+    const rating = await this.repo.createTripRating(
+      trip.id,
+      userId,
+      toUserId,
+      input.rating,
+      input.review,
+    );
+
+    // Also trigger aggregate update for safety
+    await this.repo.updateDriverRatingAggregates(driver.id).catch(() => {});
+
+    return rating;
+  }
 }
 
 export const tripsService = new TripsService();
+

@@ -14,6 +14,7 @@ import {
   vehicleHandoverSchema,
   endTripSchema,
   cancelTripSchema,
+  rateCustomerSchema,
 } from './schema.js';
 
 const router = Router();
@@ -129,4 +130,14 @@ router.get(
   },
 );
 
+// Rate customer (completed trips only, Phase 5)
+router.post(
+  '/:id/rating',
+  validate({ params: tripIdParamSchema, body: rateCustomerSchema }),
+  (req, res, next) => {
+    tripsController.rateCustomer(req, res, next);
+  },
+);
+
 export const tripRoutes = router;
+

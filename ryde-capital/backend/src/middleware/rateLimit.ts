@@ -63,3 +63,20 @@ export const locationRateLimiter = rateLimit({
     });
   },
 });
+
+export const publicTrackingRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 60, // 60 requests per minute per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      error: {
+        code: 'TOO_MANY_REQUESTS',
+        message: 'Public tracking rate limit exceeded, please slow down requests',
+        requestId: req.id || req.requestId || '',
+      },
+    });
+  },
+});
+

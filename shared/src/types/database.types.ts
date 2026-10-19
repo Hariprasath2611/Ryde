@@ -508,6 +508,10 @@ export interface Database {
           triggered_at: string;
           resolved_at: string | null;
           resolved_by: string | null;
+          reverse_geocoded_address: string | null;
+          notes: string | null;
+          acknowledged_at: string | null;
+          acknowledged_by: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -520,6 +524,10 @@ export interface Database {
           triggered_at?: string;
           resolved_at?: string | null;
           resolved_by?: string | null;
+          reverse_geocoded_address?: string | null;
+          notes?: string | null;
+          acknowledged_at?: string | null;
+          acknowledged_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -723,6 +731,7 @@ export interface Database {
           title: string;
           message: string;
           is_read: boolean;
+          data: Json | null;
           created_at: string;
           updated_at: string;
         };
@@ -733,6 +742,7 @@ export interface Database {
           title: string;
           message: string;
           is_read?: boolean;
+          data?: Json | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -755,6 +765,56 @@ export interface Database {
           entity_type: string;
           entity_id?: string | null;
           metadata?: Json | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      payout_accounts: {
+        Row: {
+          id: string;
+          driver_id: string;
+          account_type: 'upi' | 'bank_account';
+          upi_id: string | null;
+          bank_name: string | null;
+          account_number_masked: string | null;
+          ifsc_code: string | null;
+          beneficiary_name: string;
+          provider_token: string | null;
+          is_default: boolean;
+          verification_status: VerificationStatus;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          driver_id: string;
+          account_type: 'upi' | 'bank_account';
+          upi_id?: string | null;
+          bank_name?: string | null;
+          account_number_masked?: string | null;
+          ifsc_code?: string | null;
+          beneficiary_name: string;
+          provider_token?: string | null;
+          is_default?: boolean;
+          verification_status?: VerificationStatus;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      trip_shares: {
+        Row: {
+          id: string;
+          trip_id: string;
+          share_token: string;
+          expires_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          trip_id: string;
+          share_token: string;
+          expires_at: string;
           created_at?: string;
         };
         Relationships: [];

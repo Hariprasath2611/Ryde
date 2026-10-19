@@ -797,32 +797,241 @@ paths:
         '403':
           description: Contact information forbidden for inactive trips
 
+  /earnings/summary:
+    get:
+      x-status: implemented
+      summary: Get driver earnings summary totals
+      description: Returns aggregated earnings for today, this week, and this month, plus total completed trips count.
+      responses:
+        '200':
+          description: Earnings summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EarningsSummaryResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
   /earnings:
     get:
-      x-status: planned
-      summary: Get driver payout history and earnings ledger
+      x-status: implemented
+      summary: Get paginated driver earnings list and per-trip breakdown
       parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
         - name: period
           in: query
           schema:
             type: string
-            enum: [daily, weekly, monthly]
+            enum: [today, week, month, all]
+            default: all
       responses:
         '200':
-          description: Driver earnings summary
+          description: Paginated earnings breakdown
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EarningsSummary'
+                $ref: '#/components/schemas/EarningsListResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-        '501':
-          $ref: '#/components/responses/NotImplementedError'
+
+  /earnings/payout-accounts:
+    get:
+      x-status: implemented
+      summary: List driver payout accounts
+      responses:
+        '200':
+          description: List of linked payout accounts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayoutAccountsListResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+    post:
+      x-status: implemented
+      summary: Add and verify a new payout account (UPI ID or Bank Account with IFSC)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePayoutAccountRequest'
+      responses:
+        '201':
+          description: Payout account verified and created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayoutAccountResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /earnings/payout-accounts/{id}/default:
+    patch:
+      x-status: implemented
+      summary: Set payout account as default
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Default account updated
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /earnings/payout-accounts/{id}:
+    delete:
+      x-status: implemented
+      summary: Remove a payout account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Account removed
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /trips/{id}/rating:
+    post:
+      x-status: implemented
+      summary: Driver rates customer after completed trip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitRatingRequest'
+      responses:
+        '201':
+          description: Rating recorded
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '409':
+          description: Trip has already been rated
+
+  /complaints:
+    post:
+      x-status: implemented
+      summary: File a complaint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateComplaintRequest'
+      responses:
+        '201':
+          description: Complaint filed
+    get:
+      x-status: implemented
+      summary: List own complaints
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Complaints list
+
+  /notifications:
+    get:
+      x-status: implemented
+      summary: List in-app notifications and unread count
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Notifications list
+
+  /notifications/{id}/read:
+    patch:
+      x-status: implemented
+      summary: Mark notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Marked as read
+
+  /notifications/read-all:
+    post:
+      x-status: implemented
+      summary: Mark all unread notifications as read
+      responses:
+        '200':
+          description: All marked as read
+
+  /notifications/device-token:
+    post:
+      x-status: implemented
+      summary: Register device push token (Expo Push)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDeviceTokenRequest'
+      responses:
+        '201':
+          description: Device token registered
 
   /trips/{id}/sos:
     post:
-      x-status: planned
+      x-status: implemented
       summary: Trigger emergency SOS alert during a trip
+      description: >
+        Creates SOS event with reverse geocoding, alerts emergency contacts via SMS,
+        alerts support queue, and dedupes repeated presses within 60 seconds.
       parameters:
         - name: id
           in: path
@@ -838,18 +1047,88 @@ paths:
               $ref: '#/components/schemas/SosAlertRequest'
       responses:
         '200':
-          description: SOS alert acknowledged and emergency broadcast initiated
-        '400':
-          $ref: '#/components/responses/BadRequestError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '501':
-          $ref: '#/components/responses/NotImplementedError'
+          description: SOS alert already active (deduped)
+        '201':
+          description: SOS alert dispatched to emergency contacts and support
+
+  /sos/{id}/cancel:
+    post:
+      x-status: implemented
+      summary: Cancel false alarm SOS event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: SOS event marked cancelled
+
+  /trips/{id}/share:
+    post:
+      x-status: implemented
+      summary: Create time-limited live trip share token
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Share token created
+
+  /public/track/{token}:
+    get:
+      x-status: implemented
+      summary: Unauthenticated minimal live trip tracking data
+      description: >
+        Returns only minimal, unidentifiable information (driver first name, vehicle type,
+        live coordinates, destination, ETA). Zero sensitive details. Link dies when trip ends.
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Minimal live tracking data
+        '404':
+          description: Token expired, invalid, or trip concluded
+
+  /public/track/{token}/view:
+    get:
+      x-status: implemented
+      summary: Minimal HTML live tracking view
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: HTML page
 
   /emergency-contacts:
     get:
-      x-status: planned
-      summary: Retrieve registered emergency contacts
+      x-status: implemented
+      summary: Retrieve driver emergency contacts (max 5)
       responses:
         '200':
           description: List of emergency contacts
@@ -859,13 +1138,9 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/EmergencyContact'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '501':
-          $ref: '#/components/responses/NotImplementedError'
     post:
-      x-status: planned
-      summary: Register a new emergency contact
+      x-status: implemented
+      summary: Register a new emergency contact (max 5)
       requestBody:
         required: true
         content:
@@ -875,16 +1150,75 @@ paths:
       responses:
         '201':
           description: Emergency contact created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EmergencyContact'
         '400':
           $ref: '#/components/responses/BadRequestError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '501':
-          $ref: '#/components/responses/NotImplementedError'
+
+  /emergency-contacts/{id}:
+    patch:
+      x-status: implemented
+      summary: Update emergency contact
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Updated
+    delete:
+      x-status: implemented
+      summary: Delete emergency contact
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Deleted
+
+  /admin/sos:
+    get:
+      x-status: implemented
+      summary: List open SOS alerts for admin & support
+      responses:
+        '200':
+          description: Open SOS alerts list
+
+  /admin/sos/{id}/acknowledge:
+    post:
+      x-status: implemented
+      summary: Acknowledge SOS event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Acknowledged
+
+  /admin/sos/{id}/resolve:
+    post:
+      x-status: implemented
+      summary: Resolve SOS event with notes
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Resolved
+
 
   /admin/drivers:
     get:

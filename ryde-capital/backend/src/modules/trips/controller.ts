@@ -158,6 +158,18 @@ export class TripsController {
       next(error);
     }
   }
+
+  async rateCustomer(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user?.id || '';
+      const tripId = req.params['id'] || '';
+      const result = await tripsService.rateCustomer(userId, tripId, req.body);
+      res.status(201).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const tripsController = new TripsController();
+

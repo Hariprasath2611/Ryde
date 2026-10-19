@@ -42,9 +42,16 @@ export const cancelTripSchema = z.object({
   reason: z.string().min(3, 'Cancellation reason is required (minimum 3 characters)'),
 });
 
+export const rateCustomerSchema = z.object({
+  rating: z.number().int().min(1).max(5, 'Rating must be between 1 and 5'),
+  review: z.string().max(1000).optional(),
+});
+
 export type TripIdParam = z.infer<typeof tripIdParamSchema>;
 export type TripHistoryQuery = z.infer<typeof tripHistoryQuerySchema>;
 export type VerifyOtpInput = z.infer<typeof verifyOtpSchema>;
 export type VehicleHandoverInput = z.infer<typeof vehicleHandoverSchema>;
 export type EndTripInput = z.infer<typeof endTripSchema>;
 export type CancelTripInput = z.infer<typeof cancelTripSchema>;
+export type RateCustomerInput = z.infer<typeof rateCustomerSchema>;
+

@@ -141,7 +141,20 @@ export interface ITripsRepository {
   cancelStaleWaitingTrips(
     timeoutMinutes: number,
   ): Promise<Array<{ trip_id: string; driver_id: string; booking_id: string }>>;
+  getTripRating(
+    tripId: string,
+    fromUserId: string,
+  ): Promise<{ id: string; rating: number; review?: string | null } | null>;
+  createTripRating(
+    tripId: string,
+    fromUserId: string,
+    toUserId: string,
+    rating: number,
+    review?: string,
+  ): Promise<{ id: string; trip_id: string; rating: number; review?: string | null }>;
+  updateDriverRatingAggregates(driverId: string): Promise<void>;
 }
+
 
 export class TripsRepository implements ITripsRepository {
   async getDriverByUserId(userId: string): Promise<DriverRow | null> {
@@ -580,17 +593,20 @@ export class TripsRepository implements ITripsRepository {
 
     if (payErr) throw payErr;
 
-    // 3. Insert driver_earnings record
+    // 3. Insert driver_earnings record (idempotent per trip)
     const { error: earnErr } = await supabaseServiceClient
       .from('driver_earnings')
-      .insert({
-        driver_id: driverId,
-        trip_id: tripId,
-        gross_amount: fare.totalAmount,
-        platform_fee: fare.platformFee,
-        net_amount: fare.driverEarnings,
-        settlement_status: 'pending',
-      });
+      .upsert(
+        {
+          driver_id: driverId,
+          trip_id: tripId,
+          gross_amount: fare.totalAmount,
+          platform_fee: fare.platformFee,
+          net_amount: fare.driverEarnings,
+          settlement_status: 'pending',
+        },
+        { onConflict: 'trip_id', ignoreDuplicates: true },
+      );
 
     if (earnErr) throw earnErr;
   }
@@ -668,6 +684,73 @@ export class TripsRepository implements ITripsRepository {
       driver_id: row.driver_id,
       booking_id: row.booking_id,
     }));
+  }
+
+  async getTripRating(
+    tripId: string,
+    fromUserId: string,
+  ): Promise<{ id: string; rating: number; review?: string | null } | null> {
+    const { data, error } = await supabaseServiceClient
+      .from('ratings')
+      .select('id, rating, review')
+      .eq('trip_id', tripId)
+      .eq('from_user_id', fromUserId)
+      .maybeSingle();
+
+    if (error || !data) return null;
+    return data;
+  }
+
+  async createTripRating(
+    tripId: string,
+    fromUserId: string,
+    toUserId: string,
+    rating: number,
+    review?: string,
+  ): Promise<{ id: string; trip_id: string; rating: number; review?: string | null }> {
+    const { data, error } = await supabaseServiceClient
+      .from('ratings')
+      .insert({
+        trip_id: tripId,
+        from_user_id: fromUserId,
+        to_user_id: toUserId,
+        rating,
+        review: review || null,
+      })
+      .select('id, trip_id, rating, review')
+      .single();
+
+    if (error || !data) throw error || new Error('Failed to record rating');
+    return data;
+  }
+
+  async updateDriverRatingAggregates(driverId: string): Promise<void> {
+    const { data: driver } = await supabaseServiceClient
+      .from('drivers')
+      .select('user_id')
+      .eq('id', driverId)
+      .maybeSingle();
+
+    if (!driver?.user_id) return;
+
+    const { data: ratingsData } = await supabaseServiceClient
+      .from('ratings')
+      .select('rating')
+      .eq('to_user_id', driver.user_id);
+
+    if (!ratingsData || ratingsData.length === 0) return;
+
+    const count = ratingsData.length;
+    const sum = ratingsData.reduce((acc, r) => acc + Number(r.rating), 0);
+    const avg = Math.round((sum / count) * 100) / 100;
+
+    await supabaseServiceClient
+      .from('drivers')
+      .update({
+        rating_avg: avg,
+        rating_count: count,
+      })
+      .eq('id', driverId);
   }
 }
 

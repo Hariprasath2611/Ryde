@@ -92,7 +92,24 @@ export default function TripScreen() {
   const [cancelReason, setCancelReason] = useState('');
   const [showCancelModal, setShowCancelModal] = useState(false);
 
+  // Phase 5: SOS Hold State, Active State & Trip Sharing
+  const [sosHolding, setSosHolding] = useState(false);
+  const [sosCountdown, setSosCountdown] = useState(3);
+  const [sosActive, setSosActive] = useState(false);
+  const [sosEventId, setSosEventId] = useState<string | null>(null);
+  const [sosAddress, setSosAddress] = useState<string | null>(null);
+  const [sosContactsCount, setSosContactsCount] = useState<number>(0);
+  const sosTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sosIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Phase 5: Customer Rating & Complaints State
+  const [customerRating, setCustomerRating] = useState(5);
+  const [customerReview, setCustomerReview] = useState('');
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
+  const [submittingRating, setSubmittingRating] = useState(false);
+
   const mapRef = useRef<MapView | null>(null);
+
   const didOpenNavigationRef = useRef(false);
 
   // Parse [lng, lat] to { latitude, longitude }
@@ -408,31 +425,127 @@ export default function TripScreen() {
     }
   };
 
-  // Emergency SOS Trigger
-  const handleSos = () => {
-    Alert.alert(
-      'Emergency SOS',
-      'Do you wish to broadcast emergency distress coordinates to Ryde Safety & Police dispatch?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'ACTIVATE SOS',
-          style: 'destructive',
-          onPress: () => {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            Linking.openURL('tel:112');
-          },
-        },
-      ],
-    );
+  // Phase 5: 3-Second Hold SOS Trigger
+  const handleSosPressIn = () => {
+    if (sosActive) return;
+    setSosHolding(true);
+    setSosCountdown(3);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    let remaining = 3;
+    sosIntervalRef.current = setInterval(() => {
+      remaining -= 1;
+      if (remaining > 0) {
+        setSosCountdown(remaining);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    }, 1000);
+
+    sosTimerRef.current = setTimeout(async () => {
+      if (sosIntervalRef.current) clearInterval(sosIntervalRef.current);
+      setSosHolding(false);
+      await executeSosTrigger();
+    }, 3000);
   };
 
-  // Share Trip
-  const handleShareTrip = () => {
-    Share.share({
-      message: `I am currently driving trip ${trip?.id} to ${trip?.booking?.destination_address}. Track live on Ryde.`,
-    });
+  const handleSosPressOut = () => {
+    if (sosTimerRef.current) clearTimeout(sosTimerRef.current);
+    if (sosIntervalRef.current) clearInterval(sosIntervalRef.current);
+    setSosHolding(false);
+    setSosCountdown(3);
   };
+
+  const executeSosTrigger = async () => {
+    if (!trip) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
+    const pickup = parsePoint(trip.booking?.pickup_location);
+    const lat = pickup?.latitude || 12.9716;
+    const lng = pickup?.longitude || 77.5946;
+
+    try {
+      const res = await apiClient<{
+        success: boolean;
+        data: {
+          event: { id: string };
+          reverseGeocodedAddress?: string;
+          emergencyContactsNotified: number;
+        };
+      }>(`/trips/${trip.id}/sos`, {
+        method: 'POST',
+        body: JSON.stringify({ latitude: lat, longitude: lng, reason: 'Driver emergency 3s hold trigger' }),
+      });
+
+      setSosActive(true);
+      setSosEventId(res.data.event.id);
+      setSosAddress(res.data.reverseGeocodedAddress || 'Live coordinates dispatched');
+      setSosContactsCount(res.data.emergencyContactsNotified || 0);
+    } catch (err: any) {
+      Alert.alert('SOS Dispatch Error', err.message || 'Failed to dispatch SOS alert');
+    }
+  };
+
+  const handleCancelSos = async () => {
+    if (!sosEventId) {
+      setSosActive(false);
+      return;
+    }
+
+    try {
+      await apiClient(`/sos/${sosEventId}/cancel`, {
+        method: 'POST',
+        body: JSON.stringify({ reason: 'False alarm cancelled by driver' }),
+      });
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert('SOS Cancelled', 'Emergency alert has been cancelled as a false alarm.');
+      setSosActive(false);
+      setSosEventId(null);
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to cancel SOS');
+    }
+  };
+
+  // Phase 5: Native Share Sheet Trip Sharing with Cryptographic Token
+  const handleShareTrip = async () => {
+    if (!trip) return;
+    try {
+      const res = await apiClient<{
+        success: boolean;
+        data: { shareToken: string; shareUrl: string };
+      }>(`/trips/${trip.id}/share`, { method: 'POST' });
+
+      const fullUrl = `https://ryde.in${res.data.shareUrl}`;
+      await Share.share({
+        message: `Track my live Ryde trip to ${trip.booking?.destination_address || 'destination'}: ${fullUrl} (Live tracking expires when trip ends)`,
+        url: fullUrl,
+      });
+    } catch (err: any) {
+      Alert.alert('Trip Sharing', err.message || 'Failed to generate share link');
+    }
+  };
+
+  // Phase 5: Post-Trip Customer Rating
+  const handleRateCustomer = async () => {
+    if (!trip) return;
+    setSubmittingRating(true);
+    try {
+      await apiClient(`/trips/${trip.id}/rating`, {
+        method: 'POST',
+        body: JSON.stringify({
+          rating: customerRating,
+          review: customerReview.trim() || undefined,
+        }),
+      });
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setRatingSubmitted(true);
+      Alert.alert('Thank you!', 'Your passenger rating has been recorded.');
+    } catch (err: any) {
+      Alert.alert('Rating Error', err.message || 'Could not record rating');
+    } finally {
+      setSubmittingRating(false);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -711,15 +824,36 @@ export default function TripScreen() {
             <Text style={styles.sectionTitle}>Destination</Text>
             <Text style={styles.addressText}>{trip.booking?.destination_address}</Text>
 
-            <View style={styles.safetyRow}>
-              <TouchableOpacity style={styles.sosButton} onPress={handleSos}>
-                <Text style={styles.sosButtonText}>🚨 SOS</Text>
-              </TouchableOpacity>
+            {/* Phase 5 SOS Active State or 3s Hold Trigger */}
+            {sosActive ? (
+              <View style={styles.sosActiveBanner}>
+                <Text style={styles.sosActiveTitle}>🚨 EMERGENCY SOS DISPATCHED</Text>
+                <Text style={styles.sosActiveDesc}>Location: {sosAddress}</Text>
+                <Text style={styles.sosActiveDesc}>
+                  SMS sent to {sosContactsCount} emergency contacts and police/support queue.
+                </Text>
+                <TouchableOpacity style={styles.sosCancelBtn} onPress={handleCancelSos}>
+                  <Text style={styles.sosCancelBtnText}>Cancel Alert (False Alarm)</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.safetyRow}>
+                <TouchableOpacity
+                  style={[styles.sosButton, sosHolding && styles.sosButtonHolding]}
+                  activeOpacity={0.8}
+                  onPressIn={handleSosPressIn}
+                  onPressOut={handleSosPressOut}
+                >
+                  <Text style={styles.sosButtonText}>
+                    {sosHolding ? `⚠️ HOLDING (${sosCountdown}s)...` : '🚨 HOLD 3s FOR SOS'}
+                  </Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity style={styles.shareButton} onPress={handleShareTrip}>
-                <Text style={styles.shareButtonText}>🔗 Share Trip</Text>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity style={styles.shareButton} onPress={handleShareTrip}>
+                  <Text style={styles.shareButtonText}>🔗 Share Trip</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             <TouchableOpacity
               style={styles.endTripButton}
@@ -731,7 +865,7 @@ export default function TripScreen() {
         )}
 
         {/* ==================================================================== */}
-        {/* 7. TRIP COMPLETED FARE SUMMARY                                       */}
+        {/* 7. TRIP COMPLETED FARE SUMMARY & PASSENGER RATING                    */}
         {/* ==================================================================== */}
         {status === 'completed' && (
           <View style={styles.card}>
@@ -766,6 +900,57 @@ export default function TripScreen() {
                 <Text style={styles.fareValue}>{`₹${Number(trip.fare?.tax || 14.5).toFixed(2)}`}</Text>
               </View>
             </View>
+
+            {/* Phase 5: Rate Customer Section */}
+            {!ratingSubmitted ? (
+              <View style={styles.ratingBox}>
+                <Text style={styles.ratingTitle}>Rate Passenger</Text>
+                <View style={styles.starsRow}>
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <TouchableOpacity key={s} onPress={() => setCustomerRating(s)}>
+                      <Text style={[styles.starIcon, customerRating >= s && styles.starIconActive]}>
+                        ★
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TextInput
+                  style={styles.reviewInput}
+                  placeholder="Optional review about the passenger..."
+                  placeholderTextColor="#64748b"
+                  value={customerReview}
+                  onChangeText={setCustomerReview}
+                />
+                <TouchableOpacity
+                  style={styles.submitRatingButton}
+                  disabled={submittingRating}
+                  onPress={handleRateCustomer}
+                >
+                  {submittingRating ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.submitRatingButtonText}>Submit Rating</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.ratingDoneBox}>
+                <Text style={styles.ratingDoneText}>✓ Passenger Rated ({customerRating} ★)</Text>
+              </View>
+            )}
+
+            {/* Raise Complaint link */}
+            <TouchableOpacity
+              style={styles.complaintLink}
+              onPress={() =>
+                router.push({
+                  pathname: '/safety/complaint' as any,
+                  params: { tripId: trip.id },
+                })
+              }
+            >
+              <Text style={styles.complaintLinkText}>⚠️ Issue with passenger? Raise a complaint</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.primaryButton}
@@ -1324,4 +1509,108 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: 'bold',
   },
+  sosActiveBanner: {
+    backgroundColor: '#7f1d1d',
+    borderColor: '#ef4444',
+    borderWidth: 1.5,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  sosActiveTitle: {
+    color: '#fef2f2',
+    fontSize: 15,
+    fontWeight: '800',
+    marginBottom: 6,
+  },
+  sosActiveDesc: {
+    color: '#fca5a5',
+    fontSize: 12,
+    marginBottom: 4,
+    lineHeight: 16,
+  },
+  sosCancelBtn: {
+    backgroundColor: '#991b1b',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  sosCancelBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  sosButtonHolding: {
+    backgroundColor: '#b91c1c',
+    transform: [{ scale: 1.02 }],
+  },
+  ratingBox: {
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  ratingTitle: {
+    color: '#F8FAFC',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  starsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+  },
+  starIcon: {
+    fontSize: 32,
+    color: '#334155',
+  },
+  starIconActive: {
+    color: '#EAB308',
+  },
+  reviewInput: {
+    width: '100%',
+    backgroundColor: '#1E293B',
+    borderRadius: 8,
+    padding: 10,
+    color: '#F8FAFC',
+    fontSize: 13,
+    marginBottom: 12,
+  },
+  submitRatingButton: {
+    backgroundColor: '#0284c7',
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  submitRatingButtonText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  ratingDoneBox: {
+    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  ratingDoneText: {
+    color: '#22c55e',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  complaintLink: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    marginBottom: 14,
+  },
+  complaintLinkText: {
+    color: '#94a3b8',
+    fontSize: 13,
+    textDecorationLine: 'underline',
+  },
 });
+

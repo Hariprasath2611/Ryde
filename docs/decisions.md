@@ -230,4 +230,40 @@ This document records the foundational technical and architectural decisions for
 3. **Mock Payment Settlement**: Real payment gateway integration (Razorpay/Stripe) belongs to the customer booking platform. In Phase 4, the mock payment provider automatically succeeds and persists settled payment records.
 4. **Google Maps Zero Billing**: Maps handoff uses native OS URI intents and Universal Links without sending origin coordinates, completely avoiding Google Maps Directions API charges on mobile devices.
 
+---
+
+## ADR 012: Phase 5 - Earnings, Payouts, Weekly Settlement, Expo Push Notifications, Ratings Aggregation, SOS Safety & Live Trip Sharing
+
+- **Status**: Accepted
+- **Context**: Phase 5 implements the complete financial earnings ledger, payout accounts, push and in-app notifications, customer ratings, driver complaints, safety SOS workflow with emergency contacts SMS dispatch, and data-minimized live trip sharing.
+- **Decision**:
+  1. **Idempotent Earnings Ledger**:
+     - On trip completion, `driver_earnings` is created atomically (`gross_amount`, `platform_fee` based on vehicle type rule, `net_amount`, `settlement_status = 'pending'`).
+     - Idempotency is enforced at the database level by a unique constraint on `driver_earnings.trip_id` and upsert logic (`onConflict: 'trip_id', ignoreDuplicates: true`), guaranteeing duplicate completion requests never produce double payments.
+  2. **Payout Account Management & Weekly Settlement**:
+     - Payout accounts support UPI IDs and Indian Bank Accounts (validated via regex and Bank IFSC code rules).
+     - Storage security: Account numbers and UPI IDs are stored exclusively in masked formats (`account_number_masked`, `upi_id`) with provider verification tokens. Raw account numbers are never persisted.
+     - Partial unique index `idx_payout_accounts_driver_default` on `(driver_id) WHERE (is_default = true)` strictly enforces a single default payout destination per driver.
+     - Automated weekly settlement job (`settlePendingEarningsJob`) processes all pending driver earnings, routes settlements via `MockPayoutProvider`, and transitions records to `settlement_status = 'settled'` without moving real money in dev/test environments.
+  3. **Expo Push Notification Service**:
+     - Expo Push Service (`https://exp.host/--/api/v2/push/send`) was selected for push notifications because it provides a single unified backend API for both iOS (APNs) and Android (FCM) without managing platform-specific credentials.
+     - Push templates are standardized for `new_offer` (high priority with sound to alert backgrounded drivers), `trip_event`, `driver_approval`, and `settlement`.
+     - Invalid device token cleanup: Push receipts returning `DeviceNotRegistered` automatically trigger asynchronous removal of stale tokens from `device_tokens`.
+  4. **Driver Safety SOS & SMS Dispatch**:
+     - `POST /trips/:id/sos` records `sos_events` with PostGIS coordinates and reverse-geocodes the address via Google Geocoding API (`mapsService.reverseGeocode`).
+     - Emergency SMS notifications are immediately dispatched to the driver's emergency contacts (capped at 5 by DB trigger `trigger_check_max_emergency_contacts`) through `MockSmsProvider`.
+     - 60-second deduplication prevents duplicate SOS event floods caused by repeated button presses during high-stress situations.
+     - False alarm cancellation via `POST /sos/:id/cancel` sets status to `'cancelled'` while preserving the full incident audit record.
+     - Admin SOS queue (`/admin/sos`, `acknowledge`, `resolve`) enables support operators to investigate and resolve emergency alerts.
+  5. **Data-Minimized Live Trip Sharing**:
+     - Drivers generate temporary public tracking links via `POST /trips/:id/share`, creating a cryptographically random 48-character hex token valid for 24 hours in `trip_shares`.
+     - Unauthenticated public endpoint `/public/track/:token` (and `/public/track/:token/view` HTML map page) is strictly rate-limited and follows strict privacy data minimization:
+       - Exposes ONLY driver first name, customer first name, vehicle category, live coordinates, and estimated arrival time.
+       - Zero sensitive data leakage: NO phone numbers, NO customer full names, NO vehicle license plate / registration numbers.
+       - Link lifecycle: Once the trip transitions to `completed` or `cancelled_*`, the public tracking endpoint immediately returns HTTP 404/410, ensuring expired trips cannot be tracked.
+  6. **Automated Driver Rating Maintenance**:
+     - Drivers rate passengers via `POST /trips/:id/rating` (1 to 5 stars, optional review text).
+     - Customer ratings of drivers automatically update `drivers.rating_avg` and `drivers.rating_count` via PostgreSQL trigger `update_driver_rating_aggregates()` executing with `SECURITY DEFINER`, safely bypassing the RLS guard function on driver profile updates.
+
+
 

@@ -110,6 +110,7 @@ export type PaymentStatus = (typeof PAYMENT_STATUS)[keyof typeof PAYMENT_STATUS]
 export const SETTLEMENT_STATUS = {
   PENDING: 'pending',
   PROCESSED: 'processed',
+  SETTLED: 'settled',
   FAILED: 'failed',
 } as const;
 
