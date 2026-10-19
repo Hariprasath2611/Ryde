@@ -36,8 +36,9 @@ paths:
 
   /auth/me:
     get:
+      x-status: implemented
       summary: Retrieve authenticated driver profile identity
-      description: Validates Supabase JWT and returns authenticated user ID and system role.
+      description: Validates Supabase JWT and returns authenticated user profile plus driver record.
       responses:
         '200':
           description: Successfully authenticated driver
@@ -51,6 +52,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/complete-signup:
+    post:
+      x-status: implemented
+      summary: Complete driver profile signup after phone OTP verification
+      description: >
+        Requires valid Supabase JWT. Upserts profiles (role=driver), creates drivers record,
+        sets app_metadata.role=driver, and writes an audit log. The driver role is server-enforced
+        and any client-supplied role is strictly ignored. Idempotent across multiple invocations.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteSignupRequest'
+      responses:
+        '200':
+          description: Signup completed successfully or existing driver returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompleteSignupResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          description: Too many requests
+
 
   /drivers/me:
     get:
@@ -572,6 +600,75 @@ components:
           type: string
           format: email
           example: driver@ryde.in
+        phone:
+          type: string
+          example: "+919876543210"
+        full_name:
+          type: string
+          example: "Ramesh Kumar"
+        account_status:
+          type: string
+          example: "active"
+        driver:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+            driver_code:
+              type: string
+              example: "DRV-1001"
+            verification_status:
+              type: string
+              enum: [pending, approved, rejected, expired]
+              example: "approved"
+            availability_status:
+              type: string
+              enum: [offline, online, on_trip]
+              example: "online"
+            allowed_vehicle_types:
+              type: array
+              items:
+                type: string
+                enum: [two_wheeler, three_wheeler, four_wheeler]
+            rating_avg:
+              type: number
+              example: 4.90
+            rating_count:
+              type: integer
+              example: 42
+
+    CompleteSignupRequest:
+      type: object
+      properties:
+        full_name:
+          type: string
+          example: "Ramesh Kumar"
+        phone:
+          type: string
+          example: "+919876543210"
+        allowed_vehicle_types:
+          type: array
+          items:
+            type: string
+            enum: [two_wheeler, three_wheeler, four_wheeler]
+        role:
+          type: string
+          description: Client-supplied role is strictly ignored by server (always set to driver)
+          example: "admin"
+
+    CompleteSignupResponse:
+      type: object
+      required:
+        - profile
+        - driver
+      properties:
+        profile:
+          type: object
+        driver:
+          type: object
+
 
     DriverProfile:
       type: object

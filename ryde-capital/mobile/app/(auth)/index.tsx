@@ -1,23 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { Redirect } from 'expo-router';
 
-export default function AuthScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Auth Screen (Phone OTP) - Planned Phase 2</Text>
-    </View>
-  );
+export default function AuthIndex() {
+  return <Redirect href="/(auth)/login" />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#0F172A',
-  },
-  text: {
-    color: '#94A3B8',
-    fontSize: 14,
-  },
-});
