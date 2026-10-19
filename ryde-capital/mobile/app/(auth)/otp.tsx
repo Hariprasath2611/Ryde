@@ -34,7 +34,7 @@ export default function OtpScreen() {
   useEffect(() => {
     if (timer <= 0) return;
     const interval = setInterval(() => {
-      setTimer((prev) => prev - 1);
+      setTimer(prev => prev - 1);
     }, 1000);
     return () => clearInterval(interval);
   }, [timer]);
@@ -109,7 +109,7 @@ export default function OtpScreen() {
           keyboardType="number-pad"
           maxLength={6}
           value={otp}
-          onChangeText={(text) => {
+          onChangeText={text => {
             setOtp(text);
             if (error) setError(null);
           }}
@@ -117,7 +117,7 @@ export default function OtpScreen() {
           autoFocus
         />
 
-        {error && (
+        {error && !isLockedOut && (
           <Text testID="otp-error-message" style={styles.errorText}>
             {error}
           </Text>
@@ -149,12 +149,7 @@ export default function OtpScreen() {
             onPress={handleResendOtp}
             disabled={timer > 0 || isLoading}
           >
-            <Text
-              style={[
-                styles.resendAction,
-                (timer > 0 || isLoading) && styles.resendDisabled,
-              ]}
-            >
+            <Text style={[styles.resendAction, (timer > 0 || isLoading) && styles.resendDisabled]}>
               {timer > 0 ? `Resend OTP in ${timer}s` : 'Resend OTP'}
             </Text>
           </TouchableOpacity>

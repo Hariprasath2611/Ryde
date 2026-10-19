@@ -1,6 +1,11 @@
 import type { AuthUser } from '../../middleware/auth.js';
-import { UnauthorizedError, ROLES } from '@ryde/shared';
-import { authRepository, type IAuthRepository, type ProfileRow, type DriverRow } from './repository.js';
+import { UnauthorizedError, ROLES, type VehicleType } from '@ryde/shared';
+import {
+  authRepository,
+  type IAuthRepository,
+  type ProfileRow,
+  type DriverRow,
+} from './repository.js';
 import type { CompleteSignupInput } from './schema.js';
 
 export interface DriverDetails {
@@ -66,7 +71,7 @@ export class AuthService {
         driver_code: driverCode,
         verification_status: 'pending',
         availability_status: 'offline',
-        allowed_vehicle_types: (input.allowed_vehicle_types as any) ?? [],
+        allowed_vehicle_types: (input.allowed_vehicle_types as VehicleType[]) ?? [],
       });
     }
 

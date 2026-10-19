@@ -79,7 +79,6 @@ paths:
         '429':
           description: Too many requests
 
-
   /drivers/me:
     get:
       x-status: planned
@@ -602,13 +601,13 @@ components:
           example: driver@ryde.in
         phone:
           type: string
-          example: "+919876543210"
+          example: '+919876543210'
         full_name:
           type: string
-          example: "Ramesh Kumar"
+          example: 'Ramesh Kumar'
         account_status:
           type: string
-          example: "active"
+          example: 'active'
         driver:
           type: object
           nullable: true
@@ -618,15 +617,15 @@ components:
               format: uuid
             driver_code:
               type: string
-              example: "DRV-1001"
+              example: 'DRV-1001'
             verification_status:
               type: string
               enum: [pending, approved, rejected, expired]
-              example: "approved"
+              example: 'approved'
             availability_status:
               type: string
               enum: [offline, online, on_trip]
-              example: "online"
+              example: 'online'
             allowed_vehicle_types:
               type: array
               items:
@@ -644,10 +643,10 @@ components:
       properties:
         full_name:
           type: string
-          example: "Ramesh Kumar"
+          example: 'Ramesh Kumar'
         phone:
           type: string
-          example: "+919876543210"
+          example: '+919876543210'
         allowed_vehicle_types:
           type: array
           items:
@@ -656,7 +655,7 @@ components:
         role:
           type: string
           description: Client-supplied role is strictly ignored by server (always set to driver)
-          example: "admin"
+          example: 'admin'
 
     CompleteSignupResponse:
       type: object
@@ -668,7 +667,6 @@ components:
           type: object
         driver:
           type: object
-
 
     DriverProfile:
       type: object

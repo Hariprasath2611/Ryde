@@ -89,14 +89,15 @@ This document records the foundational technical and architectural decisions for
 ## Key Assumptions Made
 
 ### Phase 0 Assumptions
+
 1. **Target Market**: India (INR currency, UPI / Razorpay payment gateways, phone OTP-based auth, Google Maps Indian road network).
 2. **Vehicle Ownership**: Ryde is not a cab aggregator; customers supply their personal two, three, or four-wheelers. The driver app must support vehicle handover checklists and odometer tracking.
 3. **Database Ownership**: Both backends share a single database, with Ryde Capital owning driver/trip/safety tables and Ryde owning customer/booking/payment tables.
 4. **Mobile Workspace Isolation**: Expo mobile app operates in its own directory with dedicated scripts, coordinated by root scripts to avoid Metro bundler dependency hoist issues common in monorepos.
 
 ### Phase 1 Assumptions
+
 1. **TRAI DLT SMS Regulation**: Commercial transactional SMS in India requires DLT entity registration, 6-character sender ID, and registered content templates. For local development, test phone numbers with fixed OTPs are configured under `[auth.sms.test_otp]`.
 2. **Driver Role Exclusivity**: Ryde Capital backend endpoints serve drivers and reject customer tokens with 403 Forbidden via RBAC middleware.
 3. **PostGIS Proximity Window**: Drivers are considered available for matching only if their location was updated within the last 10 minutes (`dl.updated_at >= now() - interval '10 minutes'`).
 4. **Audit Log Immutability**: `audit_logs` is strictly append-only with no UPDATE or DELETE policies for any user, including admins.
-

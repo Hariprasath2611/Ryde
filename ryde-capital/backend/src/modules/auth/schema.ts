@@ -11,8 +11,13 @@ export const verifyOtpSchema = z.object({
 
 export const completeSignupSchema = z.object({
   full_name: z.string().min(1).max(100).optional(),
-  phone: z.string().regex(/^\+?[1-9]\d{9,14}$/, 'Invalid phone number format').optional(),
-  allowed_vehicle_types: z.array(z.enum(['two_wheeler', 'three_wheeler', 'four_wheeler'])).optional(),
+  phone: z
+    .string()
+    .regex(/^\+?[1-9]\d{9,14}$/, 'Invalid phone number format')
+    .optional(),
+  allowed_vehicle_types: z
+    .array(z.enum(['two_wheeler', 'three_wheeler', 'four_wheeler']))
+    .optional(),
   role: z.string().optional(), // Accepted in schema so client can send it, but IGNORED by server
 });
 

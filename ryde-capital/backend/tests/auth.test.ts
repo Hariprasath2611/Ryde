@@ -81,9 +81,7 @@ describe('Auth Module & RBAC Integration Tests', () => {
         .spyOn(authRepository, 'setAppMetadataRole')
         .mockResolvedValueOnce(undefined);
 
-      const auditSpy = vi
-        .spyOn(authRepository, 'createAuditLog')
-        .mockResolvedValueOnce(undefined);
+      const auditSpy = vi.spyOn(authRepository, 'createAuditLog').mockResolvedValueOnce(undefined);
 
       const res = await request(app)
         .post('/api/v1/auth/complete-signup')

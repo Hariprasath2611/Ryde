@@ -17,8 +17,10 @@ describe('Mobile Auth Flow (Login & OTP Screens)', () => {
   const mockPush = jest.fn();
   const mockReplace = jest.fn();
   const mockBack = jest.fn();
-  const mockSendOtp = jest.fn();
-  const mockVerifyOtp = jest.fn();
+  const mockSendOtp = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+  const mockVerifyOtp = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+  const mockSignOut = jest.fn<(...args: unknown[]) => Promise<unknown>>();
+  const mockRefreshProfile = jest.fn<(...args: unknown[]) => Promise<unknown>>();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -38,8 +40,8 @@ describe('Mobile Auth Flow (Login & OTP Screens)', () => {
       isLoading: false,
       sendOtp: mockSendOtp,
       verifyOtp: mockVerifyOtp,
-      signOut: jest.fn(),
-      refreshProfile: jest.fn(),
+      signOut: mockSignOut,
+      refreshProfile: mockRefreshProfile,
     });
   });
 
@@ -81,9 +83,7 @@ describe('Mobile Auth Flow (Login & OTP Screens)', () => {
       });
 
       expect(screen.getByTestId('phone-error-message')).toBeTruthy();
-      expect(
-        screen.getByText('Indian mobile numbers must start with 6, 7, 8, or 9'),
-      ).toBeTruthy();
+      expect(screen.getByText('Indian mobile numbers must start with 6, 7, 8, or 9')).toBeTruthy();
       expect(mockSendOtp).not.toHaveBeenCalled();
     });
 
@@ -125,9 +125,7 @@ describe('Mobile Auth Flow (Login & OTP Screens)', () => {
       });
 
       expect(screen.getByTestId('otp-error-message')).toBeTruthy();
-      expect(
-        screen.getByText('Please enter all 6 digits of the verification code'),
-      ).toBeTruthy();
+      expect(screen.getByText('Please enter all 6 digits of the verification code')).toBeTruthy();
       expect(mockVerifyOtp).not.toHaveBeenCalled();
     });
 
@@ -182,9 +180,7 @@ describe('Mobile Auth Flow (Login & OTP Screens)', () => {
       });
 
       expect(screen.getByTestId('lockout-message')).toBeTruthy();
-      expect(
-        screen.getByText('Too many failed attempts. Please request a new OTP.'),
-      ).toBeTruthy();
+      expect(screen.getByText('Too many failed attempts. Please request a new OTP.')).toBeTruthy();
     });
 
     it('displays 30-second countdown resend timer initially', async () => {

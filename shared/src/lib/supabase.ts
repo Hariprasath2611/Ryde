@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-export function createSupabaseServiceClient<Database = unknown>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function createSupabaseServiceClient<Database = any>(
   supabaseUrl: string,
   supabaseServiceRoleKey: string,
 ): SupabaseClient<Database> {
@@ -17,7 +18,8 @@ export function createSupabaseServiceClient<Database = unknown>(
   });
 }
 
-export function createSupabaseAnonClient<Database = unknown>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function createSupabaseAnonClient<Database = any>(
   supabaseUrl: string,
   supabaseAnonKey: string,
 ): SupabaseClient<Database> {

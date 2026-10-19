@@ -98,4 +98,3 @@ Under Telecom Regulatory Authority of India (TRAI) regulations, commercial trans
    When connecting SMS providers (such as Twilio, Textlocal, or Gupshup) in production, the registered **Entity ID (Principal Entity ID)** and **Template ID** must be configured on the provider console; otherwise, Indian telecom operators will drop the SMS packets.
 5. **Local Development**:
    For local testing without live SMS delivery, predefined test phone numbers (e.g. `+919876543210`) with fixed OTP `123456` are configured under `[auth.sms.test_otp]` in `database/supabase/config.toml`.
-

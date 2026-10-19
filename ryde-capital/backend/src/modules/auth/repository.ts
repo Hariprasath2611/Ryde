@@ -1,5 +1,12 @@
 import { supabaseServiceClient } from '../../config/supabase.js';
-import type { Database, UserRole, AccountStatus, VerificationStatus, AvailabilityStatus, VehicleType } from '@ryde/shared';
+import type {
+  Database,
+  UserRole,
+  AccountStatus,
+  VerificationStatus,
+  AvailabilityStatus,
+  VehicleType,
+} from '@ryde/shared';
 
 export type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 export type DriverRow = Database['public']['Tables']['drivers']['Row'];

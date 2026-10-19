@@ -46,8 +46,7 @@ const ExpoSecureStoreAdapter = {
 
 const supabaseUrl =
   process.env['EXPO_PUBLIC_SUPABASE_URL'] || 'https://jpfwhdilnxmqcmexroke.supabase.co';
-const supabaseAnonKey =
-  process.env['EXPO_PUBLIC_SUPABASE_ANON_KEY'] || 'mock-anon-key-placeholder';
+const supabaseAnonKey = process.env['EXPO_PUBLIC_SUPABASE_ANON_KEY'] || 'mock-anon-key-placeholder';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
