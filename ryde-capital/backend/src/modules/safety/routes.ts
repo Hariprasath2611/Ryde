@@ -1,12 +1,15 @@
 import { Router } from 'express';
 import { safetyController } from './controller.js';
 import { authMiddleware } from '../../middleware/auth.js';
+import { requireRole } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
 import { tripSosParamSchema, triggerSosSchema, createEmergencyContactSchema } from './schema.js';
+import { ROLES } from '@ryde/shared';
 
 const router = Router();
 
 router.use(authMiddleware);
+router.use(requireRole(ROLES.DRIVER));
 
 router.post(
   '/trips/:id/sos',

@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { tripsController } from './controller.js';
 import { authMiddleware } from '../../middleware/auth.js';
+import { requireRole } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
+import { ROLES } from '@ryde/shared';
 import {
   tripIdParamSchema,
   verifyOtpSchema,
@@ -12,6 +14,7 @@ import {
 const router = Router();
 
 router.use(authMiddleware);
+router.use(requireRole(ROLES.DRIVER));
 
 router.get('/:id', validate({ params: tripIdParamSchema }), (req, res, next) => {
   tripsController.getTrip(req, res, next);

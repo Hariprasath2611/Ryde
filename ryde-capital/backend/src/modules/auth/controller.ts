@@ -10,6 +10,15 @@ export class AuthController {
       next(error);
     }
   }
+
+  async completeSignup(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await authService.completeSignup(req.user!, req.body);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const authController = new AuthController();

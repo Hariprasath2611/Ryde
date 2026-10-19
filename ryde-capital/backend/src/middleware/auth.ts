@@ -4,6 +4,7 @@ import { supabaseServiceClient } from '../config/supabase.js';
 
 export interface AuthUser {
   id: string;
+  phone?: string;
   email?: string;
   role: Role;
   metadata?: Record<string, unknown>;
@@ -62,10 +63,29 @@ export async function authMiddleware(
       return;
     }
 
-    const role = (data.user.user_metadata?.['role'] as Role) || ROLES.DRIVER;
+    const appRole = data.user.app_metadata?.['role'] as Role | undefined;
+    const userRole = data.user.user_metadata?.['role'] as Role | undefined;
+    let role: Role = appRole || userRole || ROLES.CUSTOMER;
+
+    // If still customer/unset, check if profile has role assigned
+    if (!appRole && !userRole) {
+      try {
+        const { data: profile } = await supabaseServiceClient
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+        if (profile?.role) {
+          role = profile.role as Role;
+        }
+      } catch (_e) {
+        // Fallback to customer if profile fetch fails
+      }
+    }
 
     req.user = {
       id: data.user.id,
+      phone: data.user.phone,
       email: data.user.email,
       role,
       metadata: data.user.user_metadata,

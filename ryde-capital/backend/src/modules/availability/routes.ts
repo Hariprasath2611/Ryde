@@ -1,12 +1,15 @@
 import { Router } from 'express';
 import { availabilityController } from './controller.js';
 import { authMiddleware } from '../../middleware/auth.js';
+import { requireRole } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validate.js';
 import { setAvailabilitySchema } from './schema.js';
+import { ROLES } from '@ryde/shared';
 
 const router = Router();
 
 router.use(authMiddleware);
+router.use(requireRole(ROLES.DRIVER));
 
 // Supports both direct mount PUT / and mounted path /availability or /drivers/me/availability
 router.put('/', validate({ body: setAvailabilitySchema }), (req, res, next) => {
