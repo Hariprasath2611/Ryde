@@ -11,6 +11,8 @@ import {
   updateDriverProfileSchema,
   createUploadUrlSchema,
   confirmDocumentSchema,
+  recordConsentSchema,
+  deleteAccountSchema,
 } from './schema.js';
 import { ROLES } from '@ryde/shared';
 
@@ -53,6 +55,39 @@ router.post(
 // POST /api/v1/drivers/me/submit-for-review (validates checklist completion and transitions to submitted)
 router.post('/me/submit-for-review', (req, res, next) => {
   driverController.submitForReview(req, res, next);
+});
+
+// DPDP Act: POST /api/v1/drivers/me/consent (record explicit consent)
+router.post(
+  '/me/consent',
+  validate({ body: recordConsentSchema }),
+  (req, res, next) => {
+    driverController.recordConsent(req, res, next);
+  },
+);
+
+// DPDP Act: GET /api/v1/drivers/me/consent (list active and past consents)
+router.get('/me/consent', (req, res, next) => {
+  driverController.getConsents(req, res, next);
+});
+
+// DPDP Act: DELETE /api/v1/drivers/me (request account deletion with 30-day grace period)
+router.delete(
+  '/me',
+  validate({ body: deleteAccountSchema }),
+  (req, res, next) => {
+    driverController.deleteAccount(req, res, next);
+  },
+);
+
+// DPDP Act: POST /api/v1/drivers/me/cancel-deletion (cancel scheduled deletion during grace period)
+router.post('/me/cancel-deletion', (req, res, next) => {
+  driverController.cancelDeleteAccount(req, res, next);
+});
+
+// DPDP Act: GET /api/v1/drivers/me/export (download full personal data file in JSON format)
+router.get('/me/export', (req, res, next) => {
+  driverController.exportData(req, res, next);
 });
 
 export const driverRoutes = router;

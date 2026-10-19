@@ -1,6 +1,8 @@
 // shared/src/services/maps.ts
 // Google Directions and Distance Matrix wrapper with caching, timeouts, retries, and haversine fallback
 
+import { CircuitBreaker } from '../lib/circuitBreaker.js';
+
 export interface LatLng {
   latitude: number;
   longitude: number;
@@ -158,6 +160,7 @@ export class GoogleMapsService implements IMapsService {
   private maxRetries: number;
   private distanceCache: LRUCache<DistanceMatrixResult>;
   private directionsCache: LRUCache<DirectionsResult>;
+  public readonly circuitBreaker: CircuitBreaker;
 
   constructor(options: GoogleMapsServiceOptions = {}) {
     this.apiKey =
@@ -175,6 +178,11 @@ export class GoogleMapsService implements IMapsService {
       options.maxCacheCapacity ?? 1000,
       options.cacheTtlMs ?? 15 * 60 * 1000,
     );
+    this.circuitBreaker = new CircuitBreaker({
+      name: 'GoogleMapsBreaker',
+      failureThreshold: 5,
+      resetTimeoutMs: 30000,
+    });
   }
 
   private makeCoordKey(origin: LatLng, destination: LatLng): string {
@@ -183,25 +191,27 @@ export class GoogleMapsService implements IMapsService {
   }
 
   private async fetchWithRetry(url: string, retriesLeft = this.maxRetries): Promise<Response> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    return this.circuitBreaker.execute(async () => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
 
-    try {
-      const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeout);
-      if (!response.ok && retriesLeft > 0 && response.status >= 500) {
-        await new Promise((r) => setTimeout(r, 200 * (this.maxRetries - retriesLeft + 1)));
-        return this.fetchWithRetry(url, retriesLeft - 1);
+      try {
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeout);
+        if (!response.ok && retriesLeft > 0 && response.status >= 500) {
+          await new Promise((r) => setTimeout(r, 200 * (this.maxRetries - retriesLeft + 1)));
+          return this.fetchWithRetry(url, retriesLeft - 1);
+        }
+        return response;
+      } catch (err) {
+        clearTimeout(timeout);
+        if (retriesLeft > 0) {
+          await new Promise((r) => setTimeout(r, 200 * (this.maxRetries - retriesLeft + 1)));
+          return this.fetchWithRetry(url, retriesLeft - 1);
+        }
+        throw err;
       }
-      return response;
-    } catch (err) {
-      clearTimeout(timeout);
-      if (retriesLeft > 0) {
-        await new Promise((r) => setTimeout(r, 200 * (this.maxRetries - retriesLeft + 1)));
-        return this.fetchWithRetry(url, retriesLeft - 1);
-      }
-      throw err;
-    }
+    });
   }
 
   async getDistanceAndDuration(

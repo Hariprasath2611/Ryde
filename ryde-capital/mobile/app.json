@@ -11,8 +11,11 @@
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.ryde.capital",
       "infoPlist": {
+        "LSApplicationQueriesSchemes": ["comgooglemaps"],
         "NSLocationWhenInUseUsageDescription": "Ryde Capital requires your location to navigate to pickup locations and track active customer trips.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Ryde Capital requires background location to match you with nearby customer ride offers even when the app is in background.",
+        "NSCameraUsageDescription": "Ryde Capital requires camera access to capture vehicle handover photos and verify driver documents.",
+        "NSPhotoLibraryUsageDescription": "Ryde Capital requires photo library access to upload driver license and identity documents.",
         "UIBackgroundModes": [
           "location",
           "fetch"

@@ -1,7 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { AuthProvider, useAuth } from '../src/store/auth';
+import { ErrorBoundary } from '../src/components/ErrorBoundary';
+import { OfflineBanner } from '../src/components/OfflineBanner';
+import { ForceUpdateModal } from '../src/components/ForceUpdateModal';
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { session, driverProfile, isLoading } = useAuth();
@@ -10,6 +13,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isLoading) return;
+
+    // Public policy screens accessible without auth redirection
+    const currentSegment = (segments[0] as string) || '';
+    const isPublicScreen = currentSegment === 'terms' || currentSegment === 'privacy';
+    if (isPublicScreen) return;
 
     const inAuthGroup = segments[0] === '(auth)';
     const inTabsGroup = segments[0] === '(tabs)';
@@ -52,17 +60,30 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 }
 
 export default function RootLayout() {
+  const [isOffline] = useState(false);
+  const [forceUpdate] = useState(false);
+
   return (
-    <AuthProvider>
-      <AuthGuard>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
-          <Stack.Screen name="trip" options={{ headerShown: false }} />
-        </Stack>
-      </AuthGuard>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <OfflineBanner isOffline={isOffline} />
+        <ForceUpdateModal
+          visible={forceUpdate}
+          minVersion="1.0.0"
+          currentVersion="0.1.0"
+        />
+        <AuthGuard>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
+            <Stack.Screen name="trip" options={{ headerShown: false }} />
+            <Stack.Screen name="terms" options={{ headerShown: false }} />
+            <Stack.Screen name="privacy" options={{ headerShown: false }} />
+          </Stack>
+        </AuthGuard>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

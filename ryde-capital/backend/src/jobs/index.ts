@@ -5,12 +5,14 @@ import { checkLicenseExpiryJob } from './licenseExpiryCheck.js';
 import { checkStaleDriversJob } from './staleDriverCheck.js';
 import { checkStaleWaitingTripsJob } from './staleWaitingTripCheck.js';
 import { settlePendingEarningsJob } from './settlePendingEarningsJob.js';
+import { pruneTelemetryJob } from './telemetryPruningJob.js';
 
 export {
   checkLicenseExpiryJob,
   checkStaleDriversJob,
   checkStaleWaitingTripsJob,
   settlePendingEarningsJob,
+  pruneTelemetryJob,
 };
 
 
@@ -33,10 +35,17 @@ export function startBackgroundJobs(): void {
     console.warn('Initial stale waiting trip check failed:', err);
   });
 
-  // Schedule daily interval for license expiry
+  pruneTelemetryJob().catch((err) => {
+    console.warn('Initial telemetry pruning check failed:', err);
+  });
+
+  // Schedule daily interval for license expiry and telemetry retention pruning
   setInterval(() => {
     checkLicenseExpiryJob().catch((err) => {
       console.error('Scheduled daily license expiry check error:', err);
+    });
+    pruneTelemetryJob().catch((err) => {
+      console.error('Scheduled daily telemetry pruning error:', err);
     });
   }, TWENTY_FOUR_HOURS_MS);
 

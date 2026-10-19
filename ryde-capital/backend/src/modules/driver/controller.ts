@@ -49,6 +49,58 @@ export class DriverController {
       next(error);
     }
   }
+
+  async recordConsent(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress;
+      const userAgent = req.headers['user-agent'];
+      const result = await driverService.recordConsent(
+        req.user?.id || '',
+        req.body,
+        ip,
+        userAgent,
+      );
+      res.status(201).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getConsents(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await driverService.getConsents(req.user?.id || '');
+      res.status(200).json({ consents: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async deleteAccount(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await driverService.requestAccountDeletion(req.user?.id || '', req.body);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async cancelDeleteAccount(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await driverService.cancelAccountDeletion(req.user?.id || '');
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async exportData(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await driverService.exportPersonalData(req.user?.id || '');
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const driverController = new DriverController();

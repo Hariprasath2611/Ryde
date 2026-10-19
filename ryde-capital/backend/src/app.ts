@@ -18,23 +18,96 @@ import { complaintRoutes } from './modules/complaints/routes.js';
 import { safetyRoutes } from './modules/safety/routes.js';
 import { adminRoutes } from './modules/admin/routes.js';
 
+import { env } from './config/env.js';
+import { supabaseServiceClient } from './config/supabase.js';
+
 const app: Express = express();
 
 // Security and standard middlewares
 app.use(helmet());
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+const allowedOrigins = env.CORS_ORIGIN === '*'
+  ? true
+  : env.CORS_ORIGIN.split(',').map((o) => o.trim());
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id', 'Accept'],
+  }),
+);
+
+// OWASP API4: Strict request body size limits to prevent Denial of Service
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(requestIdMiddleware);
 app.use(globalRateLimiter);
 
-// Health check endpoint (Task 3: returns status, uptime, version)
+// Liveness health check endpoint
 app.get('/api/v1/health', (_req, res) => {
   res.status(200).json({
     status: 'ok',
     uptime: process.uptime(),
     version: '0.1.0',
     timestamp: new Date().toISOString(),
+  });
+});
+
+// Deep readiness check with DB connection validation
+app.get('/api/v1/health/readiness', async (req, res) => {
+  try {
+    const startTime = Date.now();
+    const { error } = await supabaseServiceClient
+      .from('profiles')
+      .select('id', { count: 'exact', head: true });
+
+    if (error) {
+      res.status(503).json({
+        status: 'unhealthy',
+        database: 'disconnected',
+        error: error.message,
+        timestamp: new Date().toISOString(),
+        requestId: req.id || req.requestId || '',
+      });
+      return;
+    }
+
+    const latencyMs = Date.now() - startTime;
+    res.status(200).json({
+      status: 'healthy',
+      database: 'connected',
+      dbLatencyMs: latencyMs,
+      uptime: process.uptime(),
+      version: '0.1.0',
+      timestamp: new Date().toISOString(),
+      requestId: req.id || req.requestId || '',
+    });
+  } catch (err: unknown) {
+    res.status(503).json({
+      status: 'unhealthy',
+      database: 'error',
+      message: err instanceof Error ? err.message : 'Unknown database error',
+      timestamp: new Date().toISOString(),
+      requestId: req.id || req.requestId || '',
+    });
+  }
+});
+
+// Minimum App Version check endpoint for Force Update
+app.get('/api/v1/app/version', (req, res) => {
+  const platform = (req.query['platform'] as string) || 'android';
+  res.status(200).json({
+    platform,
+    minVersion: env.MIN_APP_VERSION,
+    latestVersion: env.LATEST_APP_VERSION,
+    updateUrl:
+      platform === 'ios'
+        ? 'https://apps.apple.com/app/id6400000000'
+        : 'https://play.google.com/store/apps/details?id=com.ryde.capital',
+    forceUpdateRequired: false,
+    message: 'App is up to date',
   });
 });
 

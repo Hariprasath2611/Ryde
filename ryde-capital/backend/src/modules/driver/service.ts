@@ -20,6 +20,8 @@ import type {
   UpdateDriverProfileInput,
   CreateUploadUrlInput,
   ConfirmDocumentInput,
+  RecordConsentInput,
+  DeleteAccountInput,
 } from './schema.js';
 import {
   isLicenseExpiryValid,
@@ -411,6 +413,119 @@ export class DriverService {
         },
       },
     };
+  }
+
+  async recordConsent(
+    userId: string,
+    input: RecordConsentInput,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<{ success: boolean; purpose: string; version: string }> {
+    const driver = await this.repo.getDriverByUserId(userId);
+    if (!driver) throw new NotFoundError('Driver profile not found');
+
+    await this.repo.recordConsent({
+      driver_id: driver.id,
+      purpose: input.purpose,
+      consent_version: input.consentVersion,
+      is_granted: input.isGranted,
+      ip_address: ipAddress,
+      user_agent: userAgent,
+    });
+
+    await this.repo.createAuditLog({
+      user_id: userId,
+      action: 'driver_consent_recorded',
+      entity_type: 'driver_consent_logs',
+      metadata: { purpose: input.purpose, version: input.consentVersion },
+    });
+
+    return { success: true, purpose: input.purpose, version: input.consentVersion };
+  }
+
+  async getConsents(userId: string): Promise<Record<string, unknown>[]> {
+    const driver = await this.repo.getDriverByUserId(userId);
+    if (!driver) throw new NotFoundError('Driver profile not found');
+    return this.repo.getConsents(driver.id);
+  }
+
+  async requestAccountDeletion(
+    userId: string,
+    input: DeleteAccountInput,
+  ): Promise<{
+    message: string;
+    scheduledDeletionAt: string;
+    gracePeriodDays: number;
+    status: string;
+  }> {
+    const driver = await this.repo.getDriverByUserId(userId);
+    if (!driver) throw new NotFoundError('Driver profile not found');
+
+    const existing = await this.repo.getPendingDeletion(driver.id);
+    if (existing) {
+      return {
+        message: 'Account deletion is already scheduled',
+        scheduledDeletionAt: existing.scheduled_deletion_at,
+        gracePeriodDays: 30,
+        status: existing.status,
+      };
+    }
+
+    const res = await this.repo.requestAccountDeletion(driver.id, input.reason);
+
+    await this.repo.createAuditLog({
+      user_id: userId,
+      action: 'account_deletion_requested',
+      entity_type: 'account_deletion_requests',
+      metadata: { reason: input.reason, scheduled_deletion_at: res.scheduled_deletion_at },
+    });
+
+    return {
+      message:
+        'Account deletion scheduled. You have a 30-day statutory grace period during which you can cancel this request. Availability has been set to offline.',
+      scheduledDeletionAt: res.scheduled_deletion_at,
+      gracePeriodDays: 30,
+      status: res.status,
+    };
+  }
+
+  async cancelAccountDeletion(userId: string): Promise<{ message: string; success: boolean }> {
+    const driver = await this.repo.getDriverByUserId(userId);
+    if (!driver) throw new NotFoundError('Driver profile not found');
+
+    const cancelled = await this.repo.cancelAccountDeletion(driver.id);
+    if (!cancelled) {
+      throw new BadRequestError('No pending account deletion request found to cancel');
+    }
+
+    await this.repo.createAuditLog({
+      user_id: userId,
+      action: 'account_deletion_cancelled',
+      entity_type: 'account_deletion_requests',
+      metadata: { driver_id: driver.id },
+    });
+
+    return {
+      message: 'Account deletion request has been cancelled successfully. Your account is active.',
+      success: true,
+    };
+  }
+
+  async exportPersonalData(userId: string): Promise<Record<string, unknown>> {
+    const driver = await this.repo.getDriverByUserId(userId);
+    if (!driver) throw new NotFoundError('Driver profile not found');
+
+    const exportData = await this.repo.getExportData(driver.id, userId);
+
+    await this.repo.createAuditLog({
+      user_id: userId,
+      action: 'driver_personal_data_exported',
+      entity_type: 'drivers',
+      entity_id: driver.id,
+      metadata: { compliance: 'DPDP_Act_2023' },
+    });
+
+    return exportData;
   }
 }
 

@@ -45,6 +45,24 @@ export interface IDriverRepository {
     entity_id?: string | null;
     metadata?: Record<string, unknown>;
   }): Promise<void>;
+  recordConsent(data: {
+    driver_id: string;
+    purpose: string;
+    consent_version: string;
+    is_granted: boolean;
+    ip_address?: string;
+    user_agent?: string;
+  }): Promise<void>;
+  getConsents(driverId: string): Promise<Record<string, unknown>[]>;
+  requestAccountDeletion(
+    driverId: string,
+    reason?: string,
+  ): Promise<{ id: string; scheduled_deletion_at: string; status: string }>;
+  cancelAccountDeletion(driverId: string): Promise<boolean>;
+  getPendingDeletion(
+    driverId: string,
+  ): Promise<{ id: string; scheduled_deletion_at: string; status: string } | null>;
+  getExportData(driverId: string, userId: string): Promise<Record<string, unknown>>;
 }
 
 export class DriverRepository implements IDriverRepository {
@@ -250,6 +268,140 @@ export class DriverRepository implements IDriverRepository {
     if (error) {
       console.error('Failed to write audit log in driver repository:', error);
     }
+  }
+
+  async recordConsent(data: {
+    driver_id: string;
+    purpose: string;
+    consent_version: string;
+    is_granted: boolean;
+    ip_address?: string;
+    user_agent?: string;
+  }): Promise<void> {
+    const { error } = await supabaseServiceClient.from('driver_consent_logs').insert({
+      driver_id: data.driver_id,
+      purpose: data.purpose,
+      consent_version: data.consent_version,
+      is_granted: data.is_granted,
+      ip_address: data.ip_address ?? null,
+      user_agent: data.user_agent ?? null,
+    });
+    if (error) throw error;
+  }
+
+  async getConsents(driverId: string): Promise<Record<string, unknown>[]> {
+    const { data, error } = await supabaseServiceClient
+      .from('driver_consent_logs')
+      .select('*')
+      .eq('driver_id', driverId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []) as Record<string, unknown>[];
+  }
+
+  async requestAccountDeletion(
+    driverId: string,
+    reason?: string,
+  ): Promise<{ id: string; scheduled_deletion_at: string; status: string }> {
+    const scheduledAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    const { data: request, error: reqError } = await supabaseServiceClient
+      .from('account_deletion_requests')
+      .insert({
+        driver_id: driverId,
+        reason: reason ?? 'Driver initiated account deletion',
+        scheduled_deletion_at: scheduledAt,
+        status: 'pending_grace_period',
+      })
+      .select('id, scheduled_deletion_at, status')
+      .single();
+
+    if (reqError) throw reqError;
+
+    // Immediately update driver to offline and record deletion requested timestamp
+    await supabaseServiceClient
+      .from('drivers')
+      .update({
+        availability_status: 'offline',
+        deletion_requested_at: new Date().toISOString(),
+        deletion_scheduled_at: scheduledAt,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', driverId);
+
+    return request;
+  }
+
+  async cancelAccountDeletion(driverId: string): Promise<boolean> {
+    const { data, error } = await supabaseServiceClient
+      .from('account_deletion_requests')
+      .update({
+        status: 'cancelled',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('driver_id', driverId)
+      .eq('status', 'pending_grace_period')
+      .select('id');
+
+    if (error) throw error;
+
+    await supabaseServiceClient
+      .from('drivers')
+      .update({
+        deletion_requested_at: null,
+        deletion_scheduled_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', driverId);
+
+    return Boolean(data && data.length > 0);
+  }
+
+  async getPendingDeletion(
+    driverId: string,
+  ): Promise<{ id: string; scheduled_deletion_at: string; status: string } | null> {
+    const { data, error } = await supabaseServiceClient
+      .from('account_deletion_requests')
+      .select('id, scheduled_deletion_at, status')
+      .eq('driver_id', driverId)
+      .eq('status', 'pending_grace_period')
+      .order('created_at', { ascending: false })
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async getExportData(driverId: string, userId: string): Promise<Record<string, unknown>> {
+    const [driverRes, profileRes, licenseRes, identityRes, consentsRes, payoutsRes, contactsRes] =
+      await Promise.all([
+        supabaseServiceClient.from('drivers').select('*').eq('id', driverId).single(),
+        supabaseServiceClient.from('profiles').select('*').eq('id', userId).single(),
+        supabaseServiceClient.from('driving_licenses').select('*').eq('driver_id', driverId).maybeSingle(),
+        supabaseServiceClient.from('identity_documents').select('*').eq('user_id', userId).maybeSingle(),
+        supabaseServiceClient.from('driver_consent_logs').select('*').eq('driver_id', driverId),
+        supabaseServiceClient.from('payout_accounts').select('id, account_type, bank_name, account_number_masked, ifsc_code, beneficiary_name, is_default, verification_status').eq('driver_id', driverId),
+        supabaseServiceClient.from('emergency_contacts').select('*').eq('driver_id', driverId),
+      ]);
+
+    return {
+      exportMetadata: {
+        exportedAt: new Date().toISOString(),
+        format: 'JSON',
+        compliance: "India Digital Personal Data Protection Act 2023 (DPDP)",
+        driverId,
+        legalDisclaimer:
+          'This personal data export is provided in compliance with DPDP Act 2023. Notice: Legal review is required prior to commercial production launch.',
+      },
+      profile: profileRes.data,
+      driverDetails: driverRes.data,
+      drivingLicense: licenseRes.data,
+      identityDocument: identityRes.data,
+      consents: consentsRes.data ?? [],
+      payoutAccounts: payoutsRes.data ?? [],
+      emergencyContacts: contactsRes.data ?? [],
+    };
   }
 }
 

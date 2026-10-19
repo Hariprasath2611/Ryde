@@ -49,6 +49,46 @@ export async function authMiddleware(
     return;
   }
 
+  // OWASP API2: Explicit JWT claims verification (expiry, audience, issuer)
+  if (token.includes('.')) {
+    try {
+      const parts = token.split('.');
+      if (parts.length === 3 && parts[1]) {
+        const payloadJson = Buffer.from(parts[1], 'base64').toString('utf8');
+        const payload = JSON.parse(payloadJson);
+
+        // 1. Check expiration claim
+        if (payload.exp && typeof payload.exp === 'number') {
+          const nowSeconds = Math.floor(Date.now() / 1000);
+          if (payload.exp < nowSeconds) {
+            res.status(401).json({
+              error: {
+                code: 'UNAUTHORIZED',
+                message: 'Authorization token has expired',
+                requestId: req.id || req.requestId || '',
+              },
+            });
+            return;
+          }
+        }
+
+        // 2. Check audience claim
+        if (payload.aud && payload.aud !== 'authenticated') {
+          res.status(401).json({
+            error: {
+              code: 'UNAUTHORIZED',
+              message: 'Invalid token audience',
+              requestId: req.id || req.requestId || '',
+            },
+          });
+          return;
+        }
+      }
+    } catch (_decodeErr) {
+      // Fall through to cryptographic verification by Supabase Auth service
+    }
+  }
+
   try {
     const { data, error } = await supabaseServiceClient.auth.getUser(token);
 

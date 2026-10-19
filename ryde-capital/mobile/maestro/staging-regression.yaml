@@ -1,0 +1,71 @@
+# Maestro E2E Regression Suite - Ryde Capital Driver App
+# Runs against Staging Environment (api.staging.ryde.capital)
+
+appId: com.ryde.capital
+---
+
+# 1. Launch & Auth Check
+- launchApp:
+    clearState: true
+
+- assertVisible: "Enter Phone Number"
+
+# 2. Login Flow with Test Driver Credentials
+- tapOn: "Phone Number"
+- inputText: "9876543210"
+- tapOn: "Send OTP"
+
+- assertVisible: "Enter 6-Digit OTP"
+- tapOn: "OTP Input"
+- inputText: "123456"
+- tapOn: "Verify & Login"
+
+# 3. Main Dashboard & Availability Toggle
+- assertVisible: "OFFLINE"
+- tapOn: "Go Online"
+- assertVisible: "ONLINE"
+
+# 4. Ride Offer Simulation & Acceptance
+# Wait for incoming ride offer modal
+- assertVisible:
+    text: "New Ride Offer"
+    timeout: 15000
+
+- assertVisible: "Pickup: Koramangala"
+- assertVisible: "Est. Earnings"
+- tapOn: "Accept Ride"
+
+# 5. Trip Lifecycle Progression
+# Leg 1: Heading to pickup
+- assertVisible: "Heading to Pickup"
+- tapOn: "Navigate with Google Maps"
+# Return to app from external navigation
+- back
+- tapOn: "Arrived at Pickup"
+
+# Leg 2: Verify Customer OTP
+- assertVisible: "Enter Customer OTP"
+- tapOn: "OTP"
+- inputText: "1234"
+- tapOn: "Verify OTP"
+
+# Leg 3: Vehicle Handover Checklist
+- assertVisible: "Vehicle Handover"
+- tapOn: "Confirm Vehicle Condition"
+- tapOn: "Start Trip"
+
+# Leg 4: In-Progress Trip to Destination
+- assertVisible: "Trip in Progress"
+- tapOn: "Complete Trip"
+
+# Leg 5: Fare Summary & Customer Rating
+- assertVisible: "Trip Completed"
+- assertVisible: "Gross Fare"
+- assertVisible: "Your Net Earnings"
+- tapOn: "Rate 5 Stars"
+- tapOn: "Done"
+
+# 6. Verify Return to Online Dashboard
+- assertVisible: "ONLINE"
+- tapOn: "Earnings"
+- assertVisible: "Today's Earnings"

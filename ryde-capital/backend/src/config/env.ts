@@ -17,6 +17,9 @@ const envSchema = z.object({
   RAZORPAY_KEY_ID: z.string().default('placeholder-razorpay-key'),
   RAZORPAY_KEY_SECRET: z.string().default('placeholder-razorpay-secret'),
   RAZORPAY_WEBHOOK_SECRET: z.string().default('placeholder-webhook-secret'),
+  CORS_ORIGIN: z.string().default('*'),
+  MIN_APP_VERSION: z.string().default('1.0.0'),
+  LATEST_APP_VERSION: z.string().default('1.0.0'),
 });
 
 const parsed = envSchema.safeParse(process.env);

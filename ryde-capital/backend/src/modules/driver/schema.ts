@@ -97,6 +97,18 @@ export const confirmDocumentSchema = z.object({
   backFilePath: z.string().optional(),
 });
 
+export const recordConsentSchema = z.object({
+  purpose: z.string().min(2, 'Purpose is required'),
+  consentVersion: z.string().default('v1.0'),
+  isGranted: z.boolean().default(true),
+});
+
+export const deleteAccountSchema = z.object({
+  reason: z.string().min(3, 'A reason for account deletion must be provided').max(500).optional(),
+});
+
 export type UpdateDriverProfileInput = z.infer<typeof updateDriverProfileSchema>;
 export type CreateUploadUrlInput = z.infer<typeof createUploadUrlSchema>;
 export type ConfirmDocumentInput = z.infer<typeof confirmDocumentSchema>;
+export type RecordConsentInput = z.infer<typeof recordConsentSchema>;
+export type DeleteAccountInput = z.infer<typeof deleteAccountSchema>;
