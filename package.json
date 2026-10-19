@@ -15,6 +15,7 @@
     "build": "npm run build --workspaces --if-present",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "setup:env": "node scripts/setup-env.js",
     "postinstall": "npm --prefix ryde-capital/mobile install"
   },
   "devDependencies": {
