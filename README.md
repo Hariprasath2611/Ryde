@@ -104,7 +104,7 @@ Generate local `.env` files automatically across all packages using the pre-conf
 npm run setup:env
 ```
 
-*(This automatically generates `.env` files for `ryde-capital/backend`, `ryde-capital/mobile`, and `shared` with development Supabase credentials).*
+_(This automatically generates `.env` files for `ryde-capital/backend`, `ryde-capital/mobile`, and `shared` with development Supabase credentials)._
 
 ---
 
@@ -112,14 +112,14 @@ npm run setup:env
 
 ### Root Workspace Commands
 
-| Command | Description |
-| :--- | :--- |
-| `npm run setup:env` | Generates all local `.env` files from templates for your team |
-| `npm run lint` | Runs ESLint across all workspaces and mobile app |
-| `npm run typecheck` | Runs strict TypeScript compiler check across all packages |
-| `npm test` | Executes test suites across backend, shared, and mobile |
-| `npm run format` | Automatically formats all code using Prettier |
-| `npm run format:check` | Verifies code conforms to Prettier formatting |
+| Command                | Description                                                   |
+| :--------------------- | :------------------------------------------------------------ |
+| `npm run setup:env`    | Generates all local `.env` files from templates for your team |
+| `npm run lint`         | Runs ESLint across all workspaces and mobile app              |
+| `npm run typecheck`    | Runs strict TypeScript compiler check across all packages     |
+| `npm test`             | Executes test suites across backend, shared, and mobile       |
+| `npm run format`       | Automatically formats all code using Prettier                 |
+| `npm run format:check` | Verifies code conforms to Prettier formatting                 |
 
 ### Ryde Capital Backend
 

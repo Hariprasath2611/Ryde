@@ -1,17 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 
-const targets = [
-  'ryde-capital/backend',
-  'ryde-capital/mobile',
-  'shared',
-];
+const targets = ['ryde-capital/backend', 'ryde-capital/mobile', 'shared'];
 
 console.log('🔄 Setting up local .env files from .env.example templates...');
 
 let createdCount = 0;
 
-targets.forEach((relDir) => {
+targets.forEach(relDir => {
   const dir = path.resolve(__dirname, '..', relDir);
   const src = path.join(dir, '.env.example');
   const dest = path.join(dir, '.env');
@@ -27,4 +23,6 @@ targets.forEach((relDir) => {
   createdCount++;
 });
 
-console.log(`\n🎉 Success: ${createdCount} environment files generated! Teammates are ready to run.`);
+console.log(
+  `\n🎉 Success: ${createdCount} environment files generated! Teammates are ready to run.`,
+);
