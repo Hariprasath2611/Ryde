@@ -81,23 +81,23 @@ paths:
 
   /drivers/me:
     get:
-      x-status: planned
-      summary: Get driver personal details & verification status
-      description: Returns the driver profile, verification status, and registered vehicle capabilities.
+      x-status: implemented
+      summary: Get driver personal details, profile & onboarding checklist
+      description: Returns the driver profile, verification status, allowed vehicle types, and full 5-step onboarding checklist.
       responses:
         '200':
-          description: Driver profile details
+          description: Driver profile details and onboarding checklist
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DriverProfile'
+                $ref: '#/components/schemas/DriverProfileAndChecklist'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-        '501':
-          $ref: '#/components/responses/NotImplementedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
     patch:
-      x-status: planned
-      summary: Update driver personal details
+      x-status: implemented
+      summary: Update driver personal details and vehicle capabilities
       requestBody:
         required: true
         content:
@@ -106,41 +106,120 @@ paths:
               $ref: '#/components/schemas/UpdateDriverProfileRequest'
       responses:
         '200':
-          description: Profile updated
+          description: Profile updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DriverProfile'
+                $ref: '#/components/schemas/DriverProfileAndChecklist'
         '400':
           $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-        '501':
-          $ref: '#/components/responses/NotImplementedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
 
-  /drivers/me/documents:
+  /drivers/me/documents/upload-url:
     post:
-      x-status: planned
-      summary: Upload KYC & licensing verification documents
+      x-status: implemented
+      summary: Request short-lived signed upload URL for document storage
+      description: Returns a short-lived (15 min) signed upload URL to directly upload private KYC documents.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UploadDocumentRequest'
+              type: object
+              required: [type, contentType, size]
+              properties:
+                type:
+                  type: string
+                  enum: [id_proof, license_front, license_back, profile_photo]
+                contentType:
+                  type: string
+                  enum: [image/jpeg, image/png, application/pdf]
+                size:
+                  type: number
+                  maximum: 5242880
       responses:
-        '201':
-          description: Document submitted for review
+        '200':
+          description: Signed upload URL generated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DocumentRecord'
+                type: object
+                properties:
+                  signedUrl: { type: string }
+                  filePath: { type: string }
+                  token: { type: string }
+                  expiresIn: { type: number }
         '400':
           $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
-        '501':
-          $ref: '#/components/responses/NotImplementedError'
+        '429':
+          description: Upload rate limit exceeded
+
+  /drivers/me/documents:
+    post:
+      x-status: implemented
+      summary: Confirm and register uploaded verification document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, filePath]
+              properties:
+                type:
+                  type: string
+                  enum: [id_proof, license_front, license_back, profile_photo]
+                filePath:
+                  type: string
+                documentType:
+                  type: string
+                  enum: [aadhaar, pan, voter_id, passport]
+                maskedReference:
+                  type: string
+                licenseNumberMasked:
+                  type: string
+                licenseClasses:
+                  type: array
+                  items:
+                    type: string
+                expiryDate:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: Document registered in registry successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverProfileAndChecklist'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /drivers/me/submit-for-review:
+    post:
+      x-status: implemented
+      summary: Submit completed onboarding checklist for compliance review
+      description: Validates that all 5 checklist steps are complete and transitions onboarding_status to submitted.
+      responses:
+        '200':
+          description: Onboarding checklist submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverProfileAndChecklist'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
 
   /drivers/me/availability:
     put:
@@ -510,6 +589,110 @@ paths:
         '501':
           $ref: '#/components/responses/NotImplementedError'
 
+  /admin/drivers:
+    get:
+      x-status: implemented
+      summary: List drivers by onboarding status (Admin & Support only)
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [not_started, in_progress, submitted, under_review, approved, rejected]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of drivers
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Requires admin or support role
+
+  /admin/drivers/{driverId}:
+    get:
+      x-status: implemented
+      summary: Get driver details with short-lived (60s) signed document URLs (Admin only)
+      parameters:
+        - name: driverId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Driver details and 60-second signed document URLs
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Requires admin or support role
+        '404':
+          description: Driver not found
+
+  /admin/drivers/{driverId}/approve:
+    post:
+      x-status: implemented
+      summary: Approve driver onboarding application
+      parameters:
+        - name: driverId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Driver approved successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Requires admin or support role
+        '404':
+          description: Driver not found
+
+  /admin/drivers/{driverId}/reject:
+    post:
+      x-status: implemented
+      summary: Reject driver onboarding application with required reason
+      parameters:
+        - name: driverId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  minLength: 5
+      responses:
+        '200':
+          description: Driver verification rejected
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Requires admin or support role
+        '404':
+          description: Driver not found
+
 components:
   securitySchemes:
     BearerAuth:
@@ -686,6 +869,55 @@ components:
           items:
             type: string
             enum: [two_wheeler, three_wheeler, four_wheeler]
+
+    DriverProfileAndChecklist:
+      type: object
+      required:
+        - driver
+        - profile
+        - onboarding
+      properties:
+        driver:
+          type: object
+        profile:
+          type: object
+        onboarding:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: [not_started, in_progress, submitted, under_review, approved, rejected]
+            rejectionReason:
+              type: string
+              nullable: true
+            submittedAt:
+              type: string
+              format: date-time
+              nullable: true
+            progressPercentage:
+              type: integer
+              example: 100
+            completedStepsCount:
+              type: integer
+              example: 5
+            totalStepsCount:
+              type: integer
+              example: 5
+            canSubmit:
+              type: boolean
+            steps:
+              type: object
+              properties:
+                personalDetails:
+                  type: object
+                vehicleTypes:
+                  type: object
+                idProof:
+                  type: object
+                license:
+                  type: object
+                selfie:
+                  type: object
 
     UpdateDriverProfileRequest:
       type: object

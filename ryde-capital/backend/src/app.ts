@@ -14,6 +14,7 @@ import { tripRoutes } from './modules/trips/routes.js';
 import { locationRoutes } from './modules/location/routes.js';
 import { earningRoutes } from './modules/earnings/routes.js';
 import { safetyRoutes } from './modules/safety/routes.js';
+import { adminRoutes } from './modules/admin/routes.js';
 
 const app: Express = express();
 
@@ -37,6 +38,7 @@ app.get('/api/v1/health', (_req, res) => {
 
 // Mount modules under /api/v1
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/drivers', driverRoutes);
 app.use('/api/v1/drivers/me/availability', availabilityRoutes);
 app.use('/api/v1/availability', availabilityRoutes);

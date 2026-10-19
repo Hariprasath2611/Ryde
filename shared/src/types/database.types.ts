@@ -16,6 +16,7 @@ import type {
   SettlementStatus,
   SosStatus,
   ComplaintStatus,
+  DriverOnboardingStatus,
 } from '../constants/index.js';
 
 export interface Database {
@@ -217,6 +218,16 @@ export interface Database {
           rating_count: number;
           approved_by: string | null;
           approved_at: string | null;
+          date_of_birth: string | null;
+          address_line: string | null;
+          city: string | null;
+          state: string | null;
+          pincode: string | null;
+          experience_years: number;
+          profile_photo_path: string | null;
+          onboarding_status: DriverOnboardingStatus;
+          rejection_reason: string | null;
+          submitted_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -231,6 +242,16 @@ export interface Database {
           rating_count?: number;
           approved_by?: string | null;
           approved_at?: string | null;
+          date_of_birth?: string | null;
+          address_line?: string | null;
+          city?: string | null;
+          state?: string | null;
+          pincode?: string | null;
+          experience_years?: number;
+          profile_photo_path?: string | null;
+          onboarding_status?: DriverOnboardingStatus;
+          rejection_reason?: string | null;
+          submitted_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -243,7 +264,9 @@ export interface Database {
           license_number_masked: string;
           license_classes: VehicleType[];
           expiry_date: string;
-          file_path: string;
+          file_path: string | null;
+          front_file_path: string | null;
+          back_file_path: string | null;
           verification_status: VerificationStatus;
           created_at: string;
           updated_at: string;
@@ -254,7 +277,9 @@ export interface Database {
           license_number_masked: string;
           license_classes: VehicleType[];
           expiry_date: string;
-          file_path: string;
+          file_path?: string | null;
+          front_file_path?: string | null;
+          back_file_path?: string | null;
           verification_status?: VerificationStatus;
           created_at?: string;
           updated_at?: string;
@@ -695,6 +720,7 @@ export interface Database {
       settlement_status: SettlementStatus;
       sos_status: SosStatus;
       complaint_status: ComplaintStatus;
+      driver_onboarding_status: DriverOnboardingStatus;
     };
     CompositeTypes: {
       [_ in never]: never;

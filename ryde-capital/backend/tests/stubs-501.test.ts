@@ -22,13 +22,6 @@ describe('Planned Module Stubs: 501 Not Implemented', () => {
 
   const authHeader = { Authorization: 'Bearer valid-test-token' };
 
-  it('GET /api/v1/drivers/me returns 501', async () => {
-    const res = await request(app).get('/api/v1/drivers/me').set(authHeader);
-    expect(res.status).toBe(501);
-    expect(res.body.error.code).toBe('NOT_IMPLEMENTED');
-    expect(res.body.error.requestId).toBeDefined();
-  });
-
   it('PUT /api/v1/drivers/me/availability returns 501', async () => {
     const res = await request(app)
       .put('/api/v1/drivers/me/availability')

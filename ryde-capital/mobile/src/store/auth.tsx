@@ -7,6 +7,8 @@ export interface DriverRecord {
   id: string;
   driver_code: string;
   verification_status: string;
+  onboarding_status?: string;
+  rejection_reason?: string | null;
   availability_status: string;
   allowed_vehicle_types?: string[];
   rating_avg?: number;

@@ -31,3 +31,18 @@ export const authRateLimiter = rateLimit({
     });
   },
 });
+export const uploadRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30, // limit upload attempts
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      error: {
+        code: 'TOO_MANY_REQUESTS',
+        message: 'Too many document upload requests, please try again later',
+        requestId: req.id || req.requestId || '',
+      },
+    });
+  },
+});

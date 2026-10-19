@@ -12,6 +12,8 @@ export interface DriverDetails {
   id: string;
   driver_code: string;
   verification_status: string;
+  onboarding_status: string;
+  rejection_reason?: string | null;
   availability_status: string;
   allowed_vehicle_types: string[];
   rating_avg: number;
@@ -124,6 +126,8 @@ export class AuthService {
                 id: driver.id,
                 driver_code: driver.driver_code,
                 verification_status: driver.verification_status,
+                onboarding_status: driver.onboarding_status,
+                rejection_reason: driver.rejection_reason,
                 availability_status: driver.availability_status,
                 allowed_vehicle_types: driver.allowed_vehicle_types,
                 rating_avg: driver.rating_avg,

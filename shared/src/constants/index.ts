@@ -25,6 +25,18 @@ export const VERIFICATION_STATUS = {
 
 export type VerificationStatus = (typeof VERIFICATION_STATUS)[keyof typeof VERIFICATION_STATUS];
 
+export const DRIVER_ONBOARDING_STATUS = {
+  NOT_STARTED: 'not_started',
+  IN_PROGRESS: 'in_progress',
+  SUBMITTED: 'submitted',
+  UNDER_REVIEW: 'under_review',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+} as const;
+
+export type DriverOnboardingStatus =
+  (typeof DRIVER_ONBOARDING_STATUS)[keyof typeof DRIVER_ONBOARDING_STATUS];
+
 export const VEHICLE_TYPE = {
   TWO_WHEELER: 'two_wheeler',
   THREE_WHEELER: 'three_wheeler',

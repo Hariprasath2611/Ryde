@@ -4,7 +4,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { AuthProvider, useAuth } from '../src/store/auth';
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { session, isLoading } = useAuth();
+  const { session, driverProfile, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -12,13 +12,33 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const inTabsGroup = segments[0] === '(tabs)';
+    const inOnboardingGroup = segments[0] === '(onboarding)';
 
-    if (!session && !inAuthGroup) {
-      router.replace('/(auth)/login');
-    } else if (session && inAuthGroup) {
-      router.replace('/(tabs)');
+    if (!session) {
+      if (!inAuthGroup) {
+        router.replace('/(auth)/login');
+      }
+      return;
     }
-  }, [session, isLoading, segments, router]);
+
+    // Driver is authenticated
+    const isApproved =
+      driverProfile?.driver?.onboarding_status === 'approved' ||
+      driverProfile?.driver?.verification_status === 'approved';
+
+    if (!isApproved) {
+      // Unapproved drivers cannot access main tabs or auth screens
+      if (inTabsGroup || inAuthGroup) {
+        router.replace('/(onboarding)');
+      }
+    } else {
+      // Approved drivers navigating to auth or onboarding are routed to dashboard tabs
+      if (inAuthGroup || inOnboardingGroup) {
+        router.replace('/(tabs)');
+      }
+    }
+  }, [session, driverProfile, isLoading, segments, router]);
 
   if (isLoading) {
     return (
