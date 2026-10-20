@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   activeDot: {
-    width: 28,
+    width: 30,
     backgroundColor: colors.amber,
   },
   inactiveDot: {
