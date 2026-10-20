@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   Animated,
-  TouchableOpacity,
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -21,7 +20,7 @@ import { HAS_SEEN_WELCOME_KEY } from './(auth)/welcome';
 // Keep native splash screen visible until fonts and root view are ready
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-const MIN_DISPLAY_TIME_MS = 1200;
+const MIN_DISPLAY_TIME_MS = process.env.NODE_ENV === 'test' ? 60 : 1200;
 const CURRENT_APP_VERSION = '0.1.0';
 const MIN_SUPPORTED_VERSION = '0.1.0';
 
@@ -44,6 +43,10 @@ export default function SplashScreenComponent() {
 
   // Pulse animation loop for amber ring around icon
   useEffect(() => {
+    if (process.env.NODE_ENV === 'test') {
+      return;
+    }
+
     const pulseLoop = Animated.loop(
       Animated.parallel([
         Animated.timing(pulseScale, {
@@ -70,7 +73,7 @@ export default function SplashScreenComponent() {
   useEffect(() => {
     Animated.timing(progressAnim, {
       toValue: progressFraction,
-      duration: 350,
+      duration: process.env.NODE_ENV === 'test' ? 20 : 350,
       useNativeDriver: false,
     }).start();
   }, [progressFraction, progressAnim]);
@@ -92,9 +95,8 @@ export default function SplashScreenComponent() {
       await loadPersistedState();
       setProgressFraction(0.5);
 
-      // Step 3: Remote config & minimum-app-version check (simulated network/config)
+      // Step 3: Remote config & minimum-app-version check
       setBootStatus({ step: 'config' });
-      // Compare versions (semver check)
       if (CURRENT_APP_VERSION < MIN_SUPPORTED_VERSION) {
         setBootStatus({
           step: 'force_update',
@@ -293,13 +295,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingBottom: 48,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 24,
   },
   centerArea: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 40,
+    marginTop: -16,
   },
   iconWrapper: {
     width: 170,
@@ -307,7 +309,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
-    marginBottom: 28,
+    marginBottom: 20,
   },
   pulseRing: {
     position: 'absolute',
@@ -334,6 +336,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 6,
   },
   wordmarkTeal: {
     fontSize: 40,
@@ -351,13 +354,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.darkTeal,
-    marginTop: 10,
+    marginTop: 6,
     textAlign: 'center',
   },
   bottomArea: {
     width: '100%',
     alignItems: 'center',
-    paddingBottom: 24,
+    paddingBottom: 8,
   },
   progressContainer: {
     alignItems: 'center',

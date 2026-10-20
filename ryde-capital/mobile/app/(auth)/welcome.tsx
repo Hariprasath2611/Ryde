@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  Dimensions,
   TouchableOpacity,
   BackHandler,
   AccessibilityInfo,
@@ -13,6 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
 import { colors, typography } from '../../src/theme/tokens';
 import { ScreenBackground } from '../../src/components/ScreenBackground';
 import { Button } from '../../src/components/Button';
@@ -68,10 +68,14 @@ export default function WelcomeScreen() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
   const flatListRef = useRef<FlatList<SlideItem>>(null);
+  const currentSlideRef = useRef(currentSlide);
+  currentSlideRef.current = currentSlide;
 
-  // Compute adaptive panel height for small screens (360x640 to 412x917)
-  // Max 390, min 260 before shrinking text
-  const panelHeight = Math.min(390, Math.max(260, windowHeight - 470));
+  // Compute adaptive panel height for standard and small screens (min 260, max 380)
+  const isShortScreen = windowHeight < 720;
+  const panelHeight = isShortScreen
+    ? 260
+    : Math.min(380, Math.max(260, windowHeight - 480));
 
   // Check Accessibility reduce motion setting
   useEffect(() => {
@@ -100,6 +104,15 @@ export default function WelcomeScreen() {
     AccessibilityInfo.announceForAccessibility(`Slide ${currentSlide + 1} of 3`);
   }, [currentSlide]);
 
+  const scrollToSlide = useCallback((index: number) => {
+    try {
+      flatListRef.current?.scrollToIndex({ index, animated: !reduceMotion });
+    } catch {}
+    currentSlideRef.current = index;
+    setCurrentSlide(index);
+    Haptics.selectionAsync().catch(() => {});
+  }, [reduceMotion]);
+
   // Complete welcome flow and navigate to login
   const completeWelcome = useCallback(async () => {
     try {
@@ -112,10 +125,8 @@ export default function WelcomeScreen() {
 
   // Handle Next button press
   const handleNext = () => {
-    if (currentSlide < SLIDES.length - 1) {
-      const nextIndex = currentSlide + 1;
-      flatListRef.current?.scrollToIndex({ index: nextIndex, animated: !reduceMotion });
-      setCurrentSlide(nextIndex);
+    if (currentSlideRef.current < SLIDES.length - 1) {
+      scrollToSlide(currentSlideRef.current + 1);
     } else {
       completeWelcome();
     }
@@ -124,10 +135,8 @@ export default function WelcomeScreen() {
   // Android Back Handler
   useEffect(() => {
     const onBackPress = () => {
-      if (currentSlide > 0) {
-        const prevIndex = currentSlide - 1;
-        flatListRef.current?.scrollToIndex({ index: prevIndex, animated: !reduceMotion });
-        setCurrentSlide(prevIndex);
+      if (currentSlideRef.current > 0) {
+        scrollToSlide(currentSlideRef.current - 1);
         return true;
       } else {
         BackHandler.exitApp();
@@ -137,13 +146,15 @@ export default function WelcomeScreen() {
 
     const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
     return () => backHandler.remove();
-  }, [currentSlide, reduceMotion]);
+  }, [scrollToSlide]);
 
   const onMomentumScrollEnd = (e: any) => {
     const offsetX = e.nativeEvent.contentOffset.x;
     const index = Math.round(offsetX / windowWidth);
-    if (index >= 0 && index < SLIDES.length && index !== currentSlide) {
+    if (index >= 0 && index < SLIDES.length && index !== currentSlideRef.current) {
+      currentSlideRef.current = index;
       setCurrentSlide(index);
+      Haptics.selectionAsync().catch(() => {});
     }
   };
 
@@ -166,6 +177,7 @@ export default function WelcomeScreen() {
             accessibilityRole="button"
             accessibilityLabel="Skip intro and go to login"
             testID="welcome-skip-button"
+            activeOpacity={0.7}
           >
             <Text style={styles.skipText}>Skip</Text>
           </TouchableOpacity>
@@ -180,9 +192,12 @@ export default function WelcomeScreen() {
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           bounces={false}
+          initialNumToRender={3}
+          maxToRenderPerBatch={3}
+          windowSize={5}
           onMomentumScrollEnd={onMomentumScrollEnd}
           style={styles.carousel}
-          contentContainerStyle={{ alignItems: 'center' }}
+          contentContainerStyle={styles.carouselContent}
           getItemLayout={(_data, index) => ({
             length: windowWidth,
             offset: windowWidth * index,
@@ -198,14 +213,20 @@ export default function WelcomeScreen() {
               {/* Text Info */}
               <View style={styles.textWrapper}>
                 <Text
-                  style={styles.title}
+                  style={[
+                    styles.title,
+                    isShortScreen && styles.titleShort,
+                  ]}
                   maxFontSizeMultiplier={1.3}
                   testID={`slide-title-${item.id}`}
                 >
                   {item.title}
                 </Text>
                 <Text
-                  style={styles.subtitle}
+                  style={[
+                    styles.subtitle,
+                    isShortScreen && styles.subtitleShort,
+                  ]}
                   maxFontSizeMultiplier={1.3}
                   testID={`slide-subtitle-${item.id}`}
                 >
@@ -218,8 +239,13 @@ export default function WelcomeScreen() {
 
         {/* Footer Area: Dots + Primary Action Button */}
         <View style={styles.footer}>
-          {/* Animated Page Dots */}
-          <StepDots total={SLIDES.length} activeIndex={currentSlide} style={styles.dots} />
+          {/* Animated Interactive Page Dots */}
+          <StepDots
+            total={SLIDES.length}
+            activeIndex={currentSlide}
+            onDotPress={scrollToSlide}
+            style={styles.dots}
+          />
 
           {/* Primary Action Button */}
           <Button
@@ -240,15 +266,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'space-between',
-    paddingBottom: 24,
+    paddingBottom: 0,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 24,
-    paddingTop: Platform.OS === 'ios' ? 12 : 20,
-    paddingBottom: 8,
+    paddingTop: Platform.OS === 'ios' ? 4 : 8,
+    paddingBottom: 4,
     minHeight: 48,
     zIndex: 10,
   },
@@ -283,30 +309,39 @@ const styles = StyleSheet.create({
   carousel: {
     flex: 1,
   },
+  carouselContent: {
+    alignItems: 'flex-start',
+  },
   slide: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     paddingHorizontal: 24,
+    paddingTop: 4,
   },
   panelWrapper: {
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   textWrapper: {
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
   },
   title: {
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: '800',
     color: colors.darkTeal,
     textAlign: 'center',
-    lineHeight: 36,
-    marginBottom: 12,
+    lineHeight: 34,
+    marginBottom: 8,
     letterSpacing: -0.5,
+  },
+  titleShort: {
+    fontSize: 24,
+    lineHeight: 28,
+    marginBottom: 6,
   },
   subtitle: {
     fontSize: 15,
@@ -314,19 +349,26 @@ const styles = StyleSheet.create({
     color: colors.mutedText,
     textAlign: 'center',
     lineHeight: 22,
-    maxWidth: 340,
+    maxWidth: 330,
+  },
+  subtitleShort: {
+    fontSize: 13.5,
+    lineHeight: 19,
+    maxWidth: 300,
   },
   footer: {
     paddingHorizontal: 24,
-    paddingTop: 8,
+    paddingTop: 0,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 24,
     alignItems: 'center',
     width: '100%',
   },
   dots: {
-    marginBottom: 16,
+    marginTop: 6,
+    marginBottom: 18,
   },
   primaryButton: {
     width: '100%',
-    minHeight: 54,
+    minHeight: 52,
   },
 });

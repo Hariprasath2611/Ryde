@@ -27,12 +27,13 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
   const mockReplace = jest.fn();
   const mockPush = jest.fn();
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     (ExpoRouter.useRouter as jest.Mock).mockReturnValue({
       replace: mockReplace,
       push: mockPush,
     });
+    await AsyncStorage.clear();
   });
 
   afterEach(async () => {
@@ -163,9 +164,9 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
       expect(screen.getByTestId('splash-progress-track')).toBeTruthy();
       expect(screen.getByText('Getting things ready…')).toBeTruthy();
 
-      // Wait for real boot completion and min display time
+      // Wait for boot sequence completion
       await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 1400));
+        await new Promise((resolve) => setTimeout(resolve, 200));
       });
 
       expect(mockReplace).toHaveBeenCalledWith('/(auth)/welcome');
@@ -180,7 +181,7 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
       });
 
       await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 1400));
+        await new Promise((resolve) => setTimeout(resolve, 200));
       });
 
       expect(mockReplace).toHaveBeenCalledWith('/(auth)/login');
@@ -219,7 +220,7 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
       });
 
       await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 1400));
+        await new Promise((resolve) => setTimeout(resolve, 200));
       });
 
       expect(mockReplace).toHaveBeenCalledWith('/trip/trip-boot-1/to-pickup');
@@ -247,7 +248,7 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
       });
 
       await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 1400));
+        await new Promise((resolve) => setTimeout(resolve, 200));
       });
 
       expect(mockReplace).toHaveBeenCalledWith('/(tabs)/home');

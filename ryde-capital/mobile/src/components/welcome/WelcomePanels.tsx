@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   Animated,
-  AccessibilityInfo,
   Platform,
 } from 'react-native';
 import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
@@ -17,12 +16,13 @@ export interface PanelProps {
 
 /**
  * Hook for smooth 3-second floating loop animation
+ * Disables loop when reduceMotion is active or during test execution
  */
 function useFloatingOffset(reduceMotion: boolean, phaseDelayMs: number = 0) {
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (reduceMotion) {
+    if (reduceMotion || process.env.NODE_ENV === 'test') {
       anim.setValue(0);
       return;
     }
@@ -113,13 +113,15 @@ export const Slide1Panel: React.FC<PanelProps> = ({ height, reduceMotion = false
         <Text style={styles.chipTextDark}>Our driver</Text>
       </Animated.View>
 
-      <Animated.View
-        style={[styles.chip, styles.whiteChip, styles.chipBottomCenter, { transform: [{ translateY: float3 }] }]}
-        accessibilityRole="text"
-        accessibilityLabel="Bike, Auto, Car"
-      >
-        <Text style={styles.chipTextDark}>Bike · Auto · Car</Text>
-      </Animated.View>
+      <View style={styles.bottomCenterAnchor} pointerEvents="box-none">
+        <Animated.View
+          style={[styles.chip, styles.whiteChip, { transform: [{ translateY: float3 }] }]}
+          accessibilityRole="text"
+          accessibilityLabel="Bike, Auto, Car"
+        >
+          <Text style={styles.chipTextDark}>Bike · Auto · Car</Text>
+        </Animated.View>
+      </View>
     </View>
   );
 };
@@ -144,7 +146,7 @@ export const Slide2Panel: React.FC<PanelProps> = ({ height, reduceMotion = false
           <Line x1="0" y1="280" x2="360" y2="280" stroke="#253548" strokeWidth="12" />
           {/* Blue Route */}
           <Path
-            d="M 80 295 L 140 225 L 218 190 L 278 88"
+            d="M 76 290 L 140 220 L 220 185 L 280 84"
             fill="none"
             stroke={colors.routeBlue}
             strokeWidth="6"
@@ -152,10 +154,10 @@ export const Slide2Panel: React.FC<PanelProps> = ({ height, reduceMotion = false
             strokeLinejoin="round"
           />
           {/* Start Point */}
-          <Circle cx="80" cy="295" r="14" fill={colors.white} />
-          <Circle cx="80" cy="295" r="8" fill={colors.routeBlue} />
+          <Circle cx="76" cy="290" r="14" fill={colors.white} />
+          <Circle cx="76" cy="290" r="8" fill={colors.routeBlue} />
           {/* End Point */}
-          <Circle cx="278" cy="88" r="12" fill={colors.danger} />
+          <Circle cx="280" cy="84" r="12" fill={colors.danger} />
         </Svg>
       </View>
 
@@ -192,8 +194,8 @@ export const Slide2Panel: React.FC<PanelProps> = ({ height, reduceMotion = false
  */
 export const Slide3Panel: React.FC<PanelProps> = ({ height, reduceMotion = false }) => {
   const float1 = useFloatingOffset(reduceMotion, 0);
-  const float2 = useFloatingOffset(reduceMotion, 0);
-  const float3 = useFloatingOffset(reduceMotion, 800);
+  const float2 = useFloatingOffset(reduceMotion, 500);
+  const float3 = useFloatingOffset(reduceMotion, 1000);
 
   return (
     <View style={[styles.panelBase, styles.lightPanel, { height }]}>
@@ -265,11 +267,11 @@ const styles = StyleSheet.create({
   chip: {
     position: 'absolute',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 9,
     borderRadius: 20,
     shadowColor: '#07383E',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
+    shadowOpacity: 0.16,
     shadowRadius: 8,
     elevation: 4,
   },
@@ -298,36 +300,41 @@ const styles = StyleSheet.create({
   },
   // Slide 1 Positions
   chipTopLeft: {
-    top: 28,
+    top: 24,
     left: 18,
   },
   chipMidRight: {
-    top: 96,
-    right: 20,
+    top: 86,
+    right: 18,
   },
-  chipBottomCenter: {
-    bottom: 24,
+  bottomCenterAnchor: {
+    position: 'absolute',
+    bottom: 22,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   // Slide 2 Positions
   chipPickup: {
-    bottom: 84,
-    left: 20,
+    bottom: 86,
+    left: 18,
   },
   chipDrop: {
-    top: 28,
-    right: 20,
+    top: 24,
+    right: 18,
   },
   chipNavigate: {
-    bottom: 24,
-    left: 88,
+    bottom: 22,
+    left: 78,
   },
   // Slide 3 Positions
   chipShieldRight: {
-    top: 130,
+    top: 110,
     right: 18,
   },
   chipSos: {
-    bottom: 24,
-    left: 36,
+    bottom: 22,
+    left: 28,
   },
 });
