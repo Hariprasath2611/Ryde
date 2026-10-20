@@ -76,6 +76,7 @@ export default function VerificationScreen() {
             <Text style={styles.subtitle}>{en.verification.subtitle}</Text>
 
             <TextField
+              testID="aadhaar-input"
               label={en.verification.aadhaarLabel}
               value={aadhaarNumber}
               onChangeText={handleFormatAadhaar}

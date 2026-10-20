@@ -17,6 +17,7 @@ export interface HoldToConfirmProps {
   size?: number;
   label?: string;
   style?: ViewStyle;
+  testID?: string;
 }
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -27,6 +28,7 @@ export const HoldToConfirm: React.FC<HoldToConfirmProps> = ({
   size = 200,
   label = 'SOS',
   style,
+  testID = 'hold-to-confirm-button',
 }) => {
   const [holding, setHolding] = useState(false);
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -66,6 +68,7 @@ export const HoldToConfirm: React.FC<HoldToConfirmProps> = ({
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch {}
       setHolding(false);
+      progressAnim.stopAnimation();
       onConfirm();
     }, holdDurationMs);
   };
@@ -87,12 +90,13 @@ export const HoldToConfirm: React.FC<HoldToConfirmProps> = ({
   return (
     <View style={[styles.container, style]}>
       <TouchableWithoutFeedback
+        testID={testID}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         accessibilityRole="button"
         accessibilityLabel={`${label}. Hold for 3 seconds to trigger emergency alert.`}
       >
-        <View style={[styles.buttonWrapper, { width: size, height: size }]}>
+        <View testID={`${testID}-inner`} style={[styles.buttonWrapper, { width: size, height: size }]}>
           {/* Progress Ring Svg */}
           <Svg width={size} height={size} style={styles.svg}>
             {/* Background ring */}

@@ -6,18 +6,23 @@ import { colors, typography } from '../theme/tokens';
 export interface CountdownRingProps {
   expiresAt: string | number; // ISO string or timestamp in ms
   totalSeconds?: number;
+  totalDurationSeconds?: number;
   onExpire?: () => void;
   size?: number;
   strokeWidth?: number;
+  testID?: string;
 }
 
 export const CountdownRing: React.FC<CountdownRingProps> = React.memo(({
   expiresAt,
   totalSeconds = 30,
+  totalDurationSeconds,
   onExpire,
   size = 72,
   strokeWidth = 6,
+  testID = 'countdown-ring',
 }) => {
+  const duration = totalDurationSeconds || totalSeconds || 30;
   const getRemainingSeconds = () => {
     const targetMs = typeof expiresAt === 'string' ? new Date(expiresAt).getTime() : expiresAt;
     const now = Date.now();
@@ -49,11 +54,11 @@ export const CountdownRing: React.FC<CountdownRingProps> = React.memo(({
 
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const progress = Math.min(1, Math.max(0, remaining / totalSeconds));
+  const progress = Math.min(1, Math.max(0, remaining / duration));
   const strokeDashoffset = circumference * (1 - progress);
 
   return (
-    <View style={[styles.container, { width: size, height: size }]}>
+    <View testID={testID} style={[styles.container, { width: size, height: size }]}>
       <Svg width={size} height={size}>
         {/* Background track circle */}
         <Circle
@@ -80,7 +85,9 @@ export const CountdownRing: React.FC<CountdownRingProps> = React.memo(({
       </Svg>
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         <View style={styles.textWrapper}>
-          <Text style={styles.secondsText}>{remaining}s</Text>
+          <Text testID="countdown-seconds" style={styles.secondsText}>
+            {remaining}s
+          </Text>
         </View>
       </View>
     </View>

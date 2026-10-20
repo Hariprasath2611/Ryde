@@ -20,7 +20,10 @@ export interface PhoneFieldProps {
 }
 
 export const validateIndianPhone = (phone: string): boolean => {
-  const cleaned = phone.replace(/\D/g, '');
+  let cleaned = phone.replace(/\D/g, '');
+  if (cleaned.startsWith('91') && cleaned.length === 12) {
+    cleaned = cleaned.slice(2);
+  }
   return /^[6-9]\d{9}$/.test(cleaned);
 };
 
