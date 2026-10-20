@@ -93,6 +93,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
             ]}
           >
             <TextInput
+              testID={index === 0 ? testID : undefined}
               ref={(ref) => {
                 inputRefs.current[index] = ref;
               }}

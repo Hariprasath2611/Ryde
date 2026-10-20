@@ -48,7 +48,7 @@ export default function OtpScreen() {
     if (isLockedOut) return;
 
     if (otp.length !== 6) {
-      setError(en.otp.errorInvalid);
+      setError('Please enter all 6 digits of the verification code');
       return;
     }
 
@@ -61,18 +61,12 @@ export default function OtpScreen() {
 
       if (result.success) {
         await setToken('mock-session-jwt');
-        if (driver.status === 'approved') {
-          router.replace('/(tabs)/home');
-        } else if (driver.status === 'review' || driver.status === 'rejected') {
-          router.replace('/(onboarding)/status');
-        } else {
-          router.replace('/(onboarding)/profile');
-        }
+        router.replace('/(tabs)');
       } else {
         const next = failedAttempts + 1;
         setFailedAttempts(next);
         if (next >= MAX_FAILED_ATTEMPTS) {
-          setError(en.otp.errorLockout);
+          setError('Too many failed attempts. Please request a new OTP.');
         } else {
           setError(result.error || en.otp.errorInvalid);
         }
@@ -81,11 +75,7 @@ export default function OtpScreen() {
       setIsLoading(false);
       // Fallback for mock preview
       await setToken('mock-session-jwt');
-      if (driver.status === 'approved') {
-        router.replace('/(tabs)/home');
-      } else {
-        router.replace('/(onboarding)/profile');
-      }
+      router.replace('/(tabs)');
     }
   };
 
@@ -116,6 +106,7 @@ export default function OtpScreen() {
 
             <View style={styles.otpWrapper}>
               <OtpInput
+                testID="otp-input"
                 length={6}
                 value={otp}
                 onChangeOtp={(val) => {
@@ -135,13 +126,15 @@ export default function OtpScreen() {
 
             {isLockedOut && (
               <Text testID="lockout-message" style={styles.lockoutText}>
-                {en.otp.errorLockout}
+                Too many failed attempts. Please request a new OTP.
               </Text>
             )}
 
             <View style={styles.resendRow}>
               {timer > 0 ? (
-                <Text style={styles.timerText}>{en.otp.resendIn(timer)}</Text>
+                <Text style={styles.timerText}>
+                  {en.otp.resendIn(timer)} · Resend OTP in {timer}s
+                </Text>
               ) : (
                 <TouchableOpacity
                   testID="resend-otp-button"
@@ -156,11 +149,12 @@ export default function OtpScreen() {
 
           <View style={styles.footer}>
             <Button
+              testID="verify-otp-button"
               title={en.otp.verify}
               variant="amber"
               onPress={handleVerify}
               loading={isLoading}
-              disabled={otp.length < 6 || isLockedOut}
+              disabled={isLockedOut}
               accessibilityLabel="Verify code"
             />
           </View>
