@@ -15,6 +15,12 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       type: 'sourceFile',
     };
   }
+  if (platform === 'web' && (moduleName === 'react-native-maps' || moduleName.startsWith('react-native-maps/'))) {
+    return {
+      filePath: path.resolve(__dirname, 'src/shims/react-native-maps.web.js'),
+      type: 'sourceFile',
+    };
+  }
   if (defaultResolveRequest) {
     return defaultResolveRequest(context, moduleName, platform);
   }
