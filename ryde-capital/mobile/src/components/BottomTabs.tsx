@@ -22,7 +22,7 @@ export const BottomTabs: React.FC<BottomTabsProps> = ({
   onTabPress,
 }) => {
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = typeof usePathname === 'function' ? (usePathname() || '') : '';
 
   const getResolvedActiveTab = (): TabKey => {
     if (activeTab) return activeTab;

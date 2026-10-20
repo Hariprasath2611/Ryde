@@ -1,0 +1,113 @@
+# Maestro E2E Test Suite - Ryde Capital Full Driver Flow (Mock API)
+# Flow: welcome → login → OTP → onboarding → go online → offer → accept
+#       → to pickup → arrival code → vehicle check → active → final check → summary → rate
+
+appId: com.ryde.capital
+---
+
+# 1. App Launch & Welcome Onboarding Carousel
+- launchApp:
+    clearState: true
+
+- assertVisible: "Move India forward. Earn on your terms."
+- tapOn: "Next"
+- assertVisible: "Transparent payouts every Tuesday."
+- tapOn: "Next"
+- assertVisible: "Verified, tracked and protected."
+- tapOn: "Get started"
+
+# 2. Login Screen
+- assertVisible: "Welcome, driver"
+- tapOn: "Mobile number"
+- inputText: "9876543210"
+- tapOn: "Send code"
+
+# 3. OTP Verification Screen
+- assertVisible: "Verify your number"
+- tapOn: "OTP digit 1"
+- inputText: "123456"
+- tapOn: "Verify"
+
+# 4. Driver Onboarding Flow
+# 4a. Profile Setup
+- assertVisible: "Set up your profile"
+- tapOn: "Full name"
+- inputText: "Arun Kumar"
+- tapOn: "Continue"
+
+# 4b. Identity & Aadhaar Verification
+- assertVisible: "Verify your identity"
+- tapOn: "Aadhaar number"
+- inputText: "987654321098"
+- tapOn: "Aadhaar OTP"
+- inputText: "123456"
+- tapOn: "I confirm these details are correct"
+- tapOn: "Submit for review"
+
+# 4c. Vehicle Categories Selection
+- assertVisible: "What can you drive?"
+- tapOn: "Two-wheeler"
+- tapOn: "Four-wheeler"
+- tapOn: "Continue"
+
+# 4d. Application Status
+- assertVisible: "Application under review"
+- tapOn: "Continue to Home"
+
+# 5. Home Dashboard & Go Online
+- assertVisible: "You're offline"
+- assertVisible: "₹1,240"
+- tapOn: "Go online"
+- assertVisible: "You're online"
+
+# 6. Incoming Ride Offer Modal / Screen
+- assertVisible:
+    text: "New booking"
+    timeout: 10000
+- assertVisible: "Venkat"
+- assertVisible: "₹190"
+- tapOn: "Accept"
+
+# 7. Navigation Leg: Heading to Pickup
+- assertVisible: "Heading to pickup"
+- assertVisible: "Navigate in Google Maps"
+- tapOn: "I've arrived"
+
+# 8. Customer Arrival & 4-Digit Trip Start OTP
+- assertVisible: "Enter start code"
+- tapOn: "OTP digit 1"
+- inputText: "4821"
+- tapOn: "Verify code"
+
+# 9. Vehicle Pre-Trip Check
+- assertVisible: "Pre-trip vehicle check"
+- tapOn: "Full"
+- tapOn: "Confirm & start trip"
+
+# 10. Live Trip In-Progress
+- assertVisible: "Heading to drop"
+- assertVisible: "Navigate to drop in Google Maps"
+- tapOn: "Reached destination"
+
+# 11. Final Return Vehicle Check
+- assertVisible: "Return vehicle check"
+- tapOn: "Complete return"
+
+# 12. Trip Fare Summary
+- assertVisible: "Trip completed"
+- assertVisible: "₹480"
+- assertVisible: "You earn"
+- assertVisible: "₹432"
+- tapOn: "Rate customer"
+
+# 13. Customer Rating Screen
+- assertVisible: "Rate customer"
+- tapOn: "Polite & respectful"
+- tapOn: "On time at pickup"
+- tapOn: "Done"
+
+# 14. Returned to Home Dashboard
+- assertVisible: "Home"
+- assertVisible: "Trips"
+- assertVisible: "Earnings"
+- assertVisible: "Profile"

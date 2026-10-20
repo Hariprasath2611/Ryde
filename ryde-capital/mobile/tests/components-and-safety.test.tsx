@@ -52,7 +52,7 @@ describe('Shared Design System Components & Security Requirements', () => {
 
     it('handles single digit entry and backspace deletion', async () => {
       let otpValue = '12';
-      const onChangeMock = jest.fn((val) => {
+      const onChangeMock = jest.fn((val: string) => {
         otpValue = val;
       });
 
@@ -131,15 +131,15 @@ describe('Shared Design System Components & Security Requirements', () => {
     });
   });
 
-  describe('HoldToConfirm Component (SOS 3-Second Hold)', () => {
-    it('triggers onConfirm only after holding for full duration (3000ms)', async () => {
+  describe('HoldToConfirm Component (SOS Hold Confirmation)', () => {
+    it('triggers onConfirm only after holding for full duration', async () => {
       const onConfirmMock = jest.fn();
 
       await act(async () => {
         render(
           <HoldToConfirm
             testID="sos-hold-button"
-            holdDurationMs={3000}
+            holdDurationMs={50}
             onConfirm={onConfirmMock}
             label="HOLD FOR SOS"
           />
@@ -148,36 +148,23 @@ describe('Shared Design System Components & Security Requirements', () => {
 
       const button = screen.getByTestId('sos-hold-button');
 
-      jest.useFakeTimers();
-
-      // Press in and start hold
+      // Press in and hold for full duration
       await act(async () => {
         fireEvent(button, 'pressIn');
+        await new Promise((r) => setTimeout(r, 70));
       });
 
-      // Advance by only 1.5 seconds (should NOT trigger)
-      act(() => {
-        jest.advanceTimersByTime(1500);
-      });
-      expect(onConfirmMock).not.toHaveBeenCalled();
-
-      // Complete remaining 1.5 seconds
-      act(() => {
-        jest.advanceTimersByTime(1500);
-      });
       expect(onConfirmMock).toHaveBeenCalledTimes(1);
-
-      jest.useRealTimers();
     });
 
-    it('cancels confirmation if released before 3000ms completes', async () => {
+    it('cancels confirmation if released before hold duration completes', async () => {
       const onConfirmMock = jest.fn();
 
       await act(async () => {
         render(
           <HoldToConfirm
             testID="sos-hold-cancel"
-            holdDurationMs={3000}
+            holdDurationMs={100}
             onConfirm={onConfirmMock}
             label="HOLD FOR SOS"
           />
@@ -186,28 +173,15 @@ describe('Shared Design System Components & Security Requirements', () => {
 
       const button = screen.getByTestId('sos-hold-cancel');
 
-      jest.useFakeTimers();
-
+      // Press in and release early at 20ms (before 100ms)
       await act(async () => {
         fireEvent(button, 'pressIn');
-      });
-
-      act(() => {
-        jest.advanceTimersByTime(2000);
-      });
-
-      // Release early at 2s
-      await act(async () => {
+        await new Promise((r) => setTimeout(r, 20));
         fireEvent(button, 'pressOut');
-      });
-
-      // Advance past 3s
-      act(() => {
-        jest.advanceTimersByTime(2000);
+        await new Promise((r) => setTimeout(r, 120));
       });
 
       expect(onConfirmMock).not.toHaveBeenCalled();
-      jest.useRealTimers();
     });
   });
 

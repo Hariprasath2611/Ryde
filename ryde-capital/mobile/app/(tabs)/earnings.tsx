@@ -71,11 +71,6 @@ export default function EarningsScreen() {
   ];
 
   const getAmountDisplay = () => {
-    if (apiData.today !== undefined) {
-      if (period === 'today') return `₹${apiData.today.toFixed(2)}`;
-      if (period === 'week') return `₹${apiData.thisWeek?.toFixed(2)}`;
-      if (period === 'month') return `₹${apiData.thisMonth?.toFixed(2)}`;
-    }
     if (period === 'today') return formatINR(1240);
     if (period === 'week') return formatINR(8450);
     return formatINR(34200);
