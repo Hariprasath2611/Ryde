@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../services/supabase';
-import { apiClient, setApiAuthToken } from '../services/api';
+import { apiClient, isUsingMocks, setApiAuthToken } from '../services/api';
 
 export interface DriverRecord {
   id: string;
@@ -50,12 +50,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async function initializeSession() {
       try {
-        const { data, error } = await supabase.auth.getSession();
-        if (!error && data.session && isMounted) {
-          setSession(data.session);
-          setUser(data.session.user);
-          setApiAuthToken(data.session.access_token);
-          await fetchDriverProfile(data.session.access_token);
+        if (!isUsingMocks) {
+          const { data, error } = await supabase.auth.getSession();
+          if (!error && data.session && isMounted) {
+            setSession(data.session);
+            setUser(data.session.user);
+            setApiAuthToken(data.session.access_token);
+            await fetchDriverProfile(data.session.access_token);
+          }
         }
       } catch (err) {
         console.warn('Failed to load active session:', err);
@@ -114,6 +116,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
       }
 
+      // In mock mode, succeed without calling unconfigured Supabase SMS gateway
+      if (isUsingMocks) {
+        console.log(`[MockAuth] Verification code '123456' generated for ${phone}`);
+        return { success: true };
+      }
+
       const { error } = await supabase.auth.signInWithOtp({
         phone,
       });
@@ -135,6 +143,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const phone = formatPhone(phoneInput);
+
+      if (isUsingMocks) {
+        if (token.length !== 6) {
+          return { success: false, error: 'Please enter all 6 digits of the verification code' };
+        }
+
+        const mockUser: User = {
+          id: 'driver-mock-current',
+          app_metadata: {},
+          user_metadata: { phone },
+          aud: 'authenticated',
+          created_at: new Date().toISOString(),
+        } as User;
+
+        const mockSession: Session = {
+          access_token: 'mock-access-token-driver-current',
+          refresh_token: 'mock-refresh-token',
+          expires_in: 3600,
+          token_type: 'bearer',
+          user: mockUser,
+        };
+
+        setSession(mockSession);
+        setUser(mockUser);
+        setApiAuthToken(mockSession.access_token);
+        await fetchDriverProfile(mockSession.access_token);
+        return { success: true };
+      }
+
       const { data, error } = await supabase.auth.verifyOtp({
         phone,
         token,
@@ -171,7 +208,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signOut(): Promise<void> {
     try {
-      await supabase.auth.signOut();
+      if (!isUsingMocks) {
+        await supabase.auth.signOut();
+      }
     } catch (err) {
       console.warn('Error signing out:', err);
     } finally {
