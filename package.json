@@ -15,6 +15,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present && npm run typecheck --prefix ryde-capital/mobile",
     "pretest": "npm run build -w shared",
     "test": "npm test --workspaces --if-present && npm test --prefix ryde-capital/mobile",
+    "test:mobile": "npm test --prefix ryde-capital/mobile --",
     "build": "npm run build --workspaces --if-present",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
