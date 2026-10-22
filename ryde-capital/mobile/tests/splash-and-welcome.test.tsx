@@ -8,6 +8,7 @@ import * as Location from 'expo-location';
 import SplashScreenComponent from '../app/index';
 import WelcomeScreen, { HAS_SEEN_WELCOME_KEY } from '../app/(auth)/welcome';
 import { useAppStore } from '../src/store/useAppStore';
+import { mockDriverProfile, mockActiveTrip } from '../src/services/api/mock/data';
 
 jest.mock('expo-router', () => ({
   useRouter: jest.fn(),
@@ -29,21 +30,16 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    (ExpoRouter.useRouter as jest.Mock).mockReturnValue({
+    jest.mocked(ExpoRouter.useRouter).mockReturnValue({
       replace: mockReplace,
       push: mockPush,
-    });
+    } as any);
     useAppStore.setState({
       token: null,
       driver: {
+        ...mockDriverProfile,
         id: 'driver-1',
-        name: 'Arun Kumar',
-        phone: '+919876543210',
-        rating: 4.85,
-        totalTrips: 124,
-        isOnline: false,
-        status: 'approved',
-        vehicles: ['bike', 'car'],
+        fullName: 'Arun Kumar',
       },
       activeTrip: null,
     });
@@ -225,26 +221,9 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
       useAppStore.setState({
         token: 'valid-driver-token',
         activeTrip: {
+          ...mockActiveTrip,
           id: 'trip-boot-1',
           state: 'heading_to_pickup',
-          passengerName: 'Venkat',
-          passengerPhone: '+919876543210',
-          vehicleCategory: 'car',
-          pickup: {
-            address: 'MG Road',
-            latitude: 12.9716,
-            longitude: 77.5946,
-            etaMinutes: 4,
-          },
-          drop: {
-            address: 'Indiranagar',
-            distanceKm: 4.8,
-            latitude: 12.9784,
-            longitude: 77.6408,
-          },
-          fare: 190,
-          driverEarnings: 171,
-          platformFee: 19,
         },
       });
 
@@ -265,14 +244,10 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
         token: 'valid-approved-token',
         activeTrip: null,
         driver: {
+          ...mockDriverProfile,
           id: 'driver-approved-1',
-          name: 'Arun Kumar',
-          phone: '+919876543210',
-          rating: 4.9,
-          totalTrips: 142,
-          isOnline: false,
+          fullName: 'Arun Kumar',
           status: 'approved',
-          vehicles: ['bike', 'auto', 'car'],
         },
       });
 
