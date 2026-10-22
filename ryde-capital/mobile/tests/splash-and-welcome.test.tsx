@@ -33,12 +33,27 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
       replace: mockReplace,
       push: mockPush,
     });
+    useAppStore.setState({
+      token: null,
+      driver: {
+        id: 'driver-1',
+        name: 'Arun Kumar',
+        phone: '+919876543210',
+        rating: 4.85,
+        totalTrips: 124,
+        isOnline: false,
+        status: 'approved',
+        vehicles: ['bike', 'car'],
+      },
+      activeTrip: null,
+    });
     await AsyncStorage.clear();
   });
 
   afterEach(async () => {
     cleanup();
     jest.clearAllTimers();
+    jest.restoreAllMocks();
     await AsyncStorage.clear();
   });
 
@@ -106,11 +121,25 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
       expect(mockReplace).toHaveBeenCalledWith('/(auth)/login');
     });
 
+    it('switches slides when step dots are tapped', async () => {
+      await act(async () => {
+        render(<WelcomeScreen />);
+      });
+
+      // Tap dot 2 (index 1)
+      const dot2 = screen.getByTestId('step-dot-1');
+      await act(async () => {
+        fireEvent.press(dot2);
+      });
+
+      expect(screen.getByTestId('slide-title-slide-2')).toBeTruthy();
+    });
+
     it('handles Android hardware back press: exits app on slide 1, goes back on slide 2', async () => {
       const exitSpy = jest.spyOn(BackHandler, 'exitApp').mockImplementation(() => {});
 
       let backPressHandler: (() => boolean) | null = null;
-      jest.spyOn(BackHandler, 'addEventListener').mockImplementation((_event, handler) => {
+      const addListenerSpy = jest.spyOn(BackHandler, 'addEventListener').mockImplementation((_event, handler) => {
         backPressHandler = handler as () => boolean;
         return { remove: jest.fn() };
       });
@@ -121,7 +150,7 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
 
       // On Slide 1: BackHandler exits app
       expect(backPressHandler).not.toBeNull();
-      act(() => {
+      await act(async () => {
         backPressHandler!();
       });
       expect(exitSpy).toHaveBeenCalled();
@@ -134,20 +163,24 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
 
       // On Slide 2: BackHandler decrements slide instead of exiting
       exitSpy.mockClear();
-      act(() => {
+      await act(async () => {
         backPressHandler!();
       });
       expect(exitSpy).not.toHaveBeenCalled();
+
+      exitSpy.mockRestore();
+      addListenerSpy.mockRestore();
     });
 
     it('respects reduce motion accessibility setting', async () => {
-      jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(true);
+      const reduceMotionSpy = jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(true);
 
       await act(async () => {
         render(<WelcomeScreen />);
       });
 
       expect(screen.getByTestId('slide-title-slide-1')).toBeTruthy();
+      reduceMotionSpy.mockRestore();
     });
   });
 
