@@ -120,7 +120,7 @@ export default function WelcomeScreen() {
     } catch (e) {
       console.warn('Failed to save welcome state to storage:', e);
     }
-    router.replace('/(auth)/login');
+    router.replace('/(auth)/language');
   }, [router]);
 
   // Handle Next button press
