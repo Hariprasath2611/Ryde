@@ -1,140 +1,104 @@
 // ryde-capital/mobile/src/i18n/index.ts
-// Internationalization (i18n) scaffolding for Ryde Capital
-// Defaults to English (en-IN) with Hindi (hi-IN), Kannada (kn-IN), and Tamil (ta-IN) scaffolding
+// Multi-regional internationalization (i18n) for Ryde Capital
+// Supported locales: Tamil (ta-IN), English (en-IN), Hindi (hi-IN), Telugu (te-IN)
 
-export type SupportedLocale = 'en' | 'hi' | 'kn' | 'ta';
+import { useI18nStore, SupportedLocale } from '../store/useI18nStore';
+import { en } from './en';
+import { ta } from './ta';
+import { hi } from './hi';
+import { te } from './te';
+import type { TranslationSchema } from './types';
 
-export interface TranslationDictionary {
-  common: {
-    appName: string;
-    online: string;
-    offline: string;
-    retry: string;
-    cancel: string;
-    confirm: string;
-    loading: string;
-    save: string;
-  };
-  navigation: {
-    home: string;
-    trips: string;
-    earnings: string;
-    profile: string;
-    terms: string;
-    privacy: string;
-  };
-  trip: {
-    pickup: string;
-    dropoff: string;
-    headingToPickup: string;
-    arrived: string;
-    startTrip: string;
-    completeTrip: string;
-    enterOtp: string;
-    openInGoogleMaps: string;
-  };
-  safety: {
-    sos: string;
-    emergencyContacts: string;
-    shareTrip: string;
-    alertSent: string;
-  };
-}
+export type { SupportedLocale } from '../store/useI18nStore';
+export type { TranslationSchema } from './types';
 
-const en: TranslationDictionary = {
-  common: {
-    appName: 'Ryde Capital',
-    online: 'ONLINE',
-    offline: 'OFFLINE',
-    retry: 'Retry',
-    cancel: 'Cancel',
-    confirm: 'Confirm',
-    loading: 'Loading...',
-    save: 'Save',
-  },
-  navigation: {
-    home: 'Home',
-    trips: 'Trips',
-    earnings: 'Earnings',
-    profile: 'Profile',
-    terms: 'Terms of Service',
-    privacy: 'Privacy Policy',
-  },
-  trip: {
-    pickup: 'Pickup Location',
-    dropoff: 'Drop Location',
-    headingToPickup: 'Heading to Pickup',
-    arrived: 'Arrived at Pickup',
-    startTrip: 'Start Trip',
-    completeTrip: 'Complete Trip',
-    enterOtp: 'Enter Customer OTP',
-    openInGoogleMaps: 'Navigate with Google Maps',
-  },
-  safety: {
-    sos: 'EMERGENCY SOS',
-    emergencyContacts: 'Emergency Contacts',
-    shareTrip: 'Share Live Trip',
-    alertSent: 'Emergency alert dispatched to contacts',
-  },
-};
-
-const hi: TranslationDictionary = {
-  common: {
-    appName: 'राइड कैपिटल',
-    online: 'ऑनलाइन',
-    offline: 'ऑफ़लाइन',
-    retry: 'पुनः प्रयास करें',
-    cancel: 'रद्द करें',
-    confirm: 'पुष्टि करें',
-    loading: 'लोड हो रहा है...',
-    save: 'सहेजें',
-  },
-  navigation: {
-    home: 'होम',
-    trips: 'सफ़र',
-    earnings: 'कमाई',
-    profile: 'प्रोफ़ाइल',
-    terms: 'नियम और शर्तें',
-    privacy: 'गोपनीयता नीति',
-  },
-  trip: {
-    pickup: 'पिकअप स्थान',
-    dropoff: 'ड्रॉप स्थान',
-    headingToPickup: 'पिकअप की ओर जा रहे हैं',
-    arrived: 'पिकअप पर पहुंच गए',
-    startTrip: 'सफ़र शुरू करें',
-    completeTrip: 'सफ़र समाप्त करें',
-    enterOtp: 'ग्राहक ओटीपी दर्ज करें',
-    openInGoogleMaps: 'गूगल मैप्स में नेविगेट करें',
-  },
-  safety: {
-    sos: 'आपातकालीन एसओएस',
-    emergencyContacts: 'आपातकालीन संपर्क',
-    shareTrip: 'लाइव सफ़र साझा करें',
-    alertSent: 'संपर्कों को आपातकालीन चेतावनी भेजी गई',
-  },
-};
-
-const translations: Record<SupportedLocale, TranslationDictionary> = {
+export const translations: Record<SupportedLocale, TranslationSchema> = {
+  ta,
   en,
   hi,
-  kn: en, // Scaffolded for Kannada localization
-  ta: en, // Scaffolded for Tamil localization
+  te,
 };
 
-let currentLocale: SupportedLocale = 'en';
-
-export function setLocale(locale: SupportedLocale): void {
-  currentLocale = locale;
+export interface LanguageOption {
+  id: SupportedLocale;
+  label: string;
+  sublabel: string;
+  script: string;
+  badge?: string;
+  ctaLabel: string;
 }
 
-export function getLocale(): SupportedLocale {
-  return currentLocale;
+export const LANGUAGE_OPTIONS: LanguageOption[] = [
+  {
+    id: 'ta',
+    label: 'தமிழ்',
+    sublabel: 'Tamil · தமிழ்நாடு',
+    script: 'தமிழ்',
+    badge: 'Recommended',
+    ctaLabel: 'தொடரவும் →',
+  },
+  {
+    id: 'en',
+    label: 'English',
+    sublabel: 'English · Standard',
+    script: 'English',
+    ctaLabel: 'Continue →',
+  },
+  {
+    id: 'hi',
+    label: 'हिन्दी',
+    sublabel: 'Hindi · हिंदी',
+    script: 'हिन्दी',
+    ctaLabel: 'आगे बढ़ें →',
+  },
+  {
+    id: 'te',
+    label: 'తెలుగు',
+    sublabel: 'Telugu · తెలుగు',
+    script: 'తెలుగు',
+    ctaLabel: 'కొనసాగించండి →',
+  },
+];
+
+export function getTranslation(locale: SupportedLocale): TranslationSchema {
+  return translations[locale] || translations.en;
 }
 
-export function t(): TranslationDictionary {
-  return translations[currentLocale] || translations.en;
+export function getLocaleDisplayName(locale: SupportedLocale): string {
+  switch (locale) {
+    case 'ta':
+      return 'தமிழ் (Tamil)';
+    case 'hi':
+      return 'हिन्दी (Hindi)';
+    case 'te':
+      return 'తెలుగు (Telugu)';
+    case 'en':
+    default:
+      return 'English';
+  }
 }
 
-export { en } from './en';
+/**
+ * React hook for dynamic localization.
+ * Automatically triggers re-render across screens when locale changes.
+ */
+export function useTranslation() {
+  const locale = useI18nStore((state) => state.locale);
+  const setLocale = useI18nStore((state) => state.setLocale);
+  const t = translations[locale] || translations.en;
+
+  return {
+    t,
+    locale,
+    setLocale,
+  };
+}
+
+// Global non-hook fallback for static lookups
+export function t(): TranslationSchema {
+  const current = useI18nStore.getState().locale;
+  return translations[current] || translations.en;
+}
+
+export { en, ta, hi, te };
 export default en;
