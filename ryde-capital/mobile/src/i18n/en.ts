@@ -269,8 +269,17 @@ export const en = {
     payoutAccount: 'Payout account',
     emergencyContacts: 'Emergency contacts',
     helpAndSupport: 'Help and support',
+    language: 'App language',
     verified: 'Verified',
     logOut: 'Log out',
+  },
+  language: {
+    title: 'Choose your language',
+    subtitle: 'Select your preferred language for bookings, alerts, and navigation.',
+    recommendedBadge: 'Recommended for TN',
+    continue: 'Continue',
+    save: 'Save language',
+    changeSuccess: 'Language updated successfully',
   },
   payout: {
     title: 'Payout account',
