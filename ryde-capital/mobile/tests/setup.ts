@@ -18,3 +18,24 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
+jest.mock('expo-location', () => ({
+  requestForegroundPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
+  requestBackgroundPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
+  getForegroundPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
+  getBackgroundPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
+  getCurrentPositionAsync: jest.fn(async () => ({
+    coords: {
+      latitude: 13.0827,
+      longitude: 80.2707,
+      accuracy: 5,
+      altitude: 0,
+      heading: 0,
+      speed: 0,
+    },
+  })),
+  startLocationUpdatesAsync: jest.fn(async () => {}),
+  stopLocationUpdatesAsync: jest.fn(async () => {}),
+  hasStartedLocationUpdatesAsync: jest.fn(async () => false),
+  Accuracy: { Balanced: 3, High: 4, Highest: 5 },
+  ActivityType: { AutomotiveNavigation: 1 },
+}), { virtual: true });
