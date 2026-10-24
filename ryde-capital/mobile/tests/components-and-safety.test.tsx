@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
-import { render, screen, fireEvent, act } from '@testing-library/react-native';
+import { render, screen, fireEvent, act, cleanup } from '@testing-library/react-native';
 import { OtpInput } from '../src/components/OtpInput';
 import { PhoneField, validateIndianPhone } from '../src/components/PhoneField';
 import { CountdownRing } from '../src/components/CountdownRing';
