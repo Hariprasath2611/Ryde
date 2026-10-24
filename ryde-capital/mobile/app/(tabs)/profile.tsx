@@ -7,12 +7,13 @@ import { Card } from '../../src/components/Card';
 import { Row } from '../../src/components/Row';
 import { Button } from '../../src/components/Button';
 import { BottomTabs } from '../../src/components/BottomTabs';
-import { en } from '../../src/i18n/en';
+import { useTranslation, getLocaleDisplayName } from '../../src/i18n';
 import { useAppStore } from '../../src/store/useAppStore';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { driver, logout } = useAppStore();
+  const { t, locale } = useTranslation();
 
   const handleLogout = async () => {
     await logout();
@@ -40,36 +41,47 @@ export default function ProfileScreen() {
 
             <Text style={styles.name}>{driver.fullName || 'Arun Kumar'}</Text>
             <Text style={styles.statsSubtitle}>
-              {`${driver.rating} ★ · ${en.account.tripsCount(driver.totalTrips || 25)}`}
+              {`${driver.rating} ★ · ${t.account.tripsCount(driver.totalTrips || 25)}`}
             </Text>
           </View>
 
           {/* Account Details Card */}
           <Card variant="card" style={styles.detailsCard}>
             <Row
-              label={en.account.documents}
-              value={en.account.verified}
+              label={t.account.documents}
+              value={t.account.verified}
               showDivider={true}
             />
             <Row
-              label={en.account.vehicleTypes}
+              label={t.account.vehicleTypes}
               value="Bike, Car"
               showDivider={true}
             />
             <Row
-              label={en.account.payoutAccount}
+              label={t.account.language}
+              value={getLocaleDisplayName(locale)}
+              showDivider={true}
+              onPress={() =>
+                router.push({
+                  pathname: '/(auth)/language',
+                  params: { fromProfile: 'true' },
+                })
+              }
+            />
+            <Row
+              label={t.account.payoutAccount}
               value="UPI"
               showDivider={true}
               onPress={() => router.push('/payout')}
             />
             <Row
-              label={en.account.emergencyContacts}
+              label={t.account.emergencyContacts}
               value="2"
               showDivider={true}
               onPress={() => router.push('/emergency-contacts')}
             />
             <Row
-              label={en.account.helpAndSupport}
+              label={t.account.helpAndSupport}
               value="›"
               showDivider={false}
               onPress={handleSupport}
@@ -80,7 +92,7 @@ export default function ProfileScreen() {
         {/* Log out Button */}
         <View style={styles.footer}>
           <Button
-            title={en.account.logOut}
+            title={t.account.logOut}
             variant="outline"
             onPress={handleLogout}
             accessibilityLabel="Log out"
