@@ -25,6 +25,8 @@ describe('Shared Design System Components & Security Requirements', () => {
   });
 
   afterEach(() => {
+    cleanup();
+    jest.clearAllTimers();
     jest.useRealTimers();
   });
 
