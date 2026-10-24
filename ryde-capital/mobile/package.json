@@ -59,7 +59,7 @@
     "@typescript-eslint/parser": "^7.18.0",
     "eslint": "^8.57.1",
     "jest": "^30.5.2",
-    "jest-expo": "^58.0.11",
+    "jest-expo": "~58.0.12",
     "react-test-renderer": "^19.3.0",
     "typescript": "~6.0.3"
   }
