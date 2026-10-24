@@ -22,7 +22,7 @@ jest.mock('expo-splash-screen', () => ({
 
 jest.mock('expo-location', () => ({
   getForegroundPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
-}));
+}), { virtual: true });
 
 describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
   const mockReplace = jest.fn();

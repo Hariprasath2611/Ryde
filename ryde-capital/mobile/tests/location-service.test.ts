@@ -15,7 +15,7 @@ jest.mock('expo-location', () => ({
   stopLocationUpdatesAsync: jest.fn(async () => {}),
   Accuracy: { Balanced: 3 },
   PermissionStatus: { GRANTED: 'granted' },
-}));
+}), { virtual: true });
 
 jest.mock('expo-task-manager', () => ({
   isTaskDefined: jest.fn(() => true),
