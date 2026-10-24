@@ -99,10 +99,10 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
 
       const hasSeen = await AsyncStorage.getItem(HAS_SEEN_WELCOME_KEY);
       expect(hasSeen).toBe('true');
-      expect(mockReplace).toHaveBeenCalledWith('/(auth)/login');
+      expect(mockReplace).toHaveBeenCalledWith('/(auth)/language');
     });
 
-    it('saves hasSeenWelcome and navigates to login when Skip is pressed', async () => {
+    it('saves hasSeenWelcome and navigates to language selection when Skip is pressed', async () => {
       await act(async () => {
         render(<WelcomeScreen />);
       });
@@ -114,7 +114,7 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
 
       const hasSeen = await AsyncStorage.getItem(HAS_SEEN_WELCOME_KEY);
       expect(hasSeen).toBe('true');
-      expect(mockReplace).toHaveBeenCalledWith('/(auth)/login');
+      expect(mockReplace).toHaveBeenCalledWith('/(auth)/language');
     });
 
     it('switches slides when step dots are tapped', async () => {
