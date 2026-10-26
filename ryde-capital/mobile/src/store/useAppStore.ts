@@ -223,8 +223,8 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
 
   logout: async () => {
     try {
-      await SecureStore.deleteItemAsync(SESSION_STORAGE_KEY);
-      await SecureStore.deleteItemAsync(TRIP_STORAGE_KEY);
+      await safeStorage.deleteItemAsync(SESSION_STORAGE_KEY);
+      await safeStorage.deleteItemAsync(TRIP_STORAGE_KEY);
     } catch {}
     set({
       token: null,
