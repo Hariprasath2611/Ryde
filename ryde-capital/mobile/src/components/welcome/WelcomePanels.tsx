@@ -37,12 +37,12 @@ function useFloatingOffset(reduceMotion: boolean, phaseDelayMs: number = 0) {
           Animated.timing(anim, {
             toValue: -6,
             duration: 1500,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
           }),
           Animated.timing(anim, {
             toValue: 6,
             duration: 1500,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
           }),
         ]),
       );
@@ -70,7 +70,12 @@ export const Slide1Panel: React.FC<PanelProps> = ({ height, reduceMotion = false
   return (
     <View style={[styles.panelBase, styles.lightPanel, { height }]}>
       {/* Decorative SVG Illustration (Hidden from screen reader) */}
-      <View style={StyleSheet.absoluteFill} accessible={false} importantForAccessibility="no-hide-descendants">
+      <View
+        style={StyleSheet.absoluteFill}
+        accessible={Platform.OS === 'web' ? undefined : false}
+        aria-hidden={true}
+        importantForAccessibility="no-hide-descendants"
+      >
         <Svg width="100%" height="100%" viewBox="0 0 360 390" preserveAspectRatio="xMidYMid meet">
           {/* Concentric Circle */}
           <Circle cx="180" cy="195" r="130" fill="#BBD8DB" fillOpacity={0.65} />
@@ -137,7 +142,12 @@ export const Slide2Panel: React.FC<PanelProps> = ({ height, reduceMotion = false
   return (
     <View style={[styles.panelBase, styles.darkMapPanel, { height }]}>
       {/* Map Graphics */}
-      <View style={StyleSheet.absoluteFill} accessible={false} importantForAccessibility="no-hide-descendants">
+      <View
+        style={StyleSheet.absoluteFill}
+        accessible={Platform.OS === 'web' ? undefined : false}
+        aria-hidden={true}
+        importantForAccessibility="no-hide-descendants"
+      >
         <Svg width="100%" height="100%" viewBox="0 0 360 390" preserveAspectRatio="xMidYMid meet">
           {/* Grid Road Lines */}
           <Line x1="100" y1="0" x2="100" y2="390" stroke="#253548" strokeWidth="12" />
@@ -200,7 +210,12 @@ export const Slide3Panel: React.FC<PanelProps> = ({ height, reduceMotion = false
   return (
     <View style={[styles.panelBase, styles.lightPanel, { height }]}>
       {/* Shield and Rings */}
-      <View style={StyleSheet.absoluteFill} accessible={false} importantForAccessibility="no-hide-descendants">
+      <View
+        style={StyleSheet.absoluteFill}
+        accessible={Platform.OS === 'web' ? undefined : false}
+        aria-hidden={true}
+        importantForAccessibility="no-hide-descendants"
+      >
         <Svg width="100%" height="100%" viewBox="0 0 360 390" preserveAspectRatio="xMidYMid meet">
           <Circle cx="180" cy="195" r="130" fill="#BBD8DB" fillOpacity={0.65} />
           <Circle cx="180" cy="195" r="145" stroke={colors.amber} strokeWidth="3" fill="none" />
