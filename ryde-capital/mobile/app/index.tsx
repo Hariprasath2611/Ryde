@@ -52,12 +52,12 @@ export default function SplashScreenComponent() {
         Animated.timing(pulseScale, {
           toValue: 1.35,
           duration: 1800,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
         Animated.timing(pulseOpacity, {
           toValue: 0,
           duration: 1800,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
       ]),
     );
@@ -193,7 +193,13 @@ export default function SplashScreenComponent() {
 
             {/* 150 dp App Icon (Dark teal rounded square, radius 44) */}
             <View style={styles.appIcon} testID="splash-app-icon">
-              <Svg width={92} height={92} viewBox="0 0 100 100" accessible={false}>
+              <Svg
+                width={92}
+                height={92}
+                viewBox="0 0 100 100"
+                accessible={Platform.OS === 'web' ? undefined : false}
+                aria-hidden={true}
+              >
                 {/* Steering Wheel Rim */}
                 <Circle
                   cx="50"

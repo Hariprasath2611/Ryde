@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import * as SecureStore from 'expo-secure-store';
+import { safeStorage } from '../services/storage';
 import {
   DriverProfile,
   RideOffer,
@@ -91,9 +91,9 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   setToken: async (token) => {
     try {
       if (token) {
-        await SecureStore.setItemAsync(SESSION_STORAGE_KEY, token);
+        await safeStorage.setItemAsync(SESSION_STORAGE_KEY, token);
       } else {
-        await SecureStore.deleteItemAsync(SESSION_STORAGE_KEY);
+        await safeStorage.deleteItemAsync(SESSION_STORAGE_KEY);
       }
     } catch {}
     set({ token });
@@ -132,9 +132,9 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   setActiveTrip: async (trip) => {
     try {
       if (trip) {
-        await SecureStore.setItemAsync(TRIP_STORAGE_KEY, JSON.stringify(trip));
+        await safeStorage.setItemAsync(TRIP_STORAGE_KEY, JSON.stringify(trip));
       } else {
-        await SecureStore.deleteItemAsync(TRIP_STORAGE_KEY);
+        await safeStorage.deleteItemAsync(TRIP_STORAGE_KEY);
       }
     } catch {}
     set({ activeTrip: trip });
@@ -152,9 +152,9 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
 
     try {
       if (state === 'completed' || state.startsWith('cancelled')) {
-        await SecureStore.deleteItemAsync(TRIP_STORAGE_KEY);
+        await safeStorage.deleteItemAsync(TRIP_STORAGE_KEY);
       } else {
-        await SecureStore.setItemAsync(TRIP_STORAGE_KEY, JSON.stringify(updated));
+        await safeStorage.setItemAsync(TRIP_STORAGE_KEY, JSON.stringify(updated));
       }
     } catch {}
 
@@ -199,12 +199,12 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
 
   loadPersistedState: async () => {
     try {
-      const savedTrip = await SecureStore.getItemAsync(TRIP_STORAGE_KEY);
+      const savedTrip = await safeStorage.getItemAsync(TRIP_STORAGE_KEY);
       if (savedTrip) {
         const parsed = JSON.parse(savedTrip) as TripRecord;
         set({ activeTrip: parsed });
       }
-      const savedToken = await SecureStore.getItemAsync(SESSION_STORAGE_KEY);
+      const savedToken = await safeStorage.getItemAsync(SESSION_STORAGE_KEY);
       if (savedToken) {
         set({ token: savedToken });
       }
