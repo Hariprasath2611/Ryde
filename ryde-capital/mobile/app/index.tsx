@@ -10,12 +10,10 @@ import { useRouter } from 'expo-router';
 import Svg, { Circle, Line } from 'react-native-svg';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Location from 'expo-location';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, typography } from '../src/theme/tokens';
 import { ScreenBackground } from '../src/components/ScreenBackground';
 import { Button } from '../src/components/Button';
 import { useAppStore, getRouteForTripState } from '../src/store/useAppStore';
-import { HAS_SEEN_WELCOME_KEY } from './(auth)/welcome';
 
 // Keep native splash screen visible until fonts and root view are ready
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -123,14 +121,6 @@ export default function SplashScreenComponent() {
 
       setBootStatus({ step: 'complete' });
 
-      // Check first-launch welcome state
-      const hasSeenWelcome = (await AsyncStorage.getItem(HAS_SEEN_WELCOME_KEY)) === 'true';
-
-      if (!hasSeenWelcome) {
-        router.replace('/(auth)/welcome');
-        return;
-      }
-
       // Root routing guard for authenticated / onboarding states
       const currentTrip = useAppStore.getState().activeTrip;
       if (currentTrip) {
@@ -140,7 +130,7 @@ export default function SplashScreenComponent() {
 
       const currentToken = useAppStore.getState().token;
       if (!currentToken) {
-        router.replace('/(auth)/login');
+        router.replace('/(auth)/welcome');
         return;
       }
 
