@@ -79,7 +79,7 @@ export const getRouteForTripState = (state: TripState, tripId: string): string =
 };
 
 export const useAppStore = create<AppStoreState>((set, get) => ({
-  token: 'mock-initial-token', // default logged in for previewing flow
+  token: null, // default unauthenticated until session is restored or user logs in
   driver: { ...mockDriverProfile },
   onboardingStep: 'profile',
   isOnline: false,
