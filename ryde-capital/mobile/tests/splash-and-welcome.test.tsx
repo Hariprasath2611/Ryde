@@ -201,7 +201,7 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
       expect(mockReplace).toHaveBeenCalledWith('/(auth)/welcome');
     });
 
-    it('routes to /(auth)/login on subsequent launch when no active session exists', async () => {
+    it('routes to /(auth)/welcome (landing page) when no active session exists', async () => {
       await AsyncStorage.setItem(HAS_SEEN_WELCOME_KEY, 'true');
       useAppStore.setState({ token: null, activeTrip: null });
 
@@ -213,7 +213,7 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
         await new Promise((resolve) => setTimeout(resolve, 200));
       });
 
-      expect(mockReplace).toHaveBeenCalledWith('/(auth)/login');
+      expect(mockReplace).toHaveBeenCalledWith('/(auth)/welcome');
     });
 
     it('routes to active trip when driver has an ongoing trip state', async () => {
