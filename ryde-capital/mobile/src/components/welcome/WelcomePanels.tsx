@@ -253,6 +253,11 @@ const styles = StyleSheet.create({
   darkMapPanel: {
     backgroundColor: '#1A2532',
   },
+  brightMapPanel: {
+    backgroundColor: '#F5F3ED',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
   chip: {
     position: 'absolute',
     paddingHorizontal: 16,
