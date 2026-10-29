@@ -32,7 +32,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
     if (!session) {
       if (!inAuthGroup) {
-        router.replace('/(auth)/welcome');
+        router.replace('/(auth)/login');
       }
       return;
     }
