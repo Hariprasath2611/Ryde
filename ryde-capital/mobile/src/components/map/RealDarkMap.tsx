@@ -250,7 +250,7 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
       aria-hidden={true}
     >
       {/* 1. Real Dark Matter Map Tiles Layer */}
-      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
         {tiles.map((tile) => (
           <Image
             key={tile.key}
@@ -273,7 +273,7 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
       </View>
 
       {/* 2. Real GPS Navigation Route & Vector Overlays */}
-      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
         <Svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`}>
           <Defs>
             {/* Glowing cyan/blue navigation gradient */}
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0B111E',
   },
   vignetteOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(10, 17, 30, 0.18)',
   },
   radarWave: {
