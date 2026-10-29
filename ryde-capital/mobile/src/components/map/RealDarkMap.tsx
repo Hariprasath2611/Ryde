@@ -26,6 +26,8 @@ export interface LatLng {
   longitude: number;
 }
 
+export const DEFAULT_CARTO_KEY = 'cb1_4xr2_1_b81942231c0c7d3505a25c5b';
+
 export interface RealDarkMapProps {
   center?: LatLng;
   zoom?: number;
@@ -38,6 +40,8 @@ export interface RealDarkMapProps {
   showDriver?: boolean;
   driverHeading?: number; // degrees (e.g. 45)
   statusText?: string;
+  theme?: 'dark' | 'voyager';
+  apiKey?: string;
   style?: StyleProp<ViewStyle>;
   interactive?: boolean;
   testID?: string;
@@ -84,6 +88,8 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
   showDriver = true,
   driverHeading = 42,
   statusText = 'GPS Live • Anna Salai, Chennai',
+  theme = 'dark',
+  apiKey = DEFAULT_CARTO_KEY,
   style,
   testID = 'real-dark-map',
 }) => {
@@ -182,21 +188,24 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
         const left = Math.round((tx - centerTileX) * TILE_SIZE + halfW);
         const top = Math.round((ty - centerTileY) * TILE_SIZE + halfH);
 
-        // Official Esri Dark Navigation Basemap + Street Reference Labels (No watermark, No API key needed)
-        const baseUri = `https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/${zoom}/${ty}/${wrappedTx}`;
-        const refUri = `https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/${zoom}/${ty}/${wrappedTx}`;
+        // CartoDB High-Res Retina Tiles using user's licensed API Key
+        const subdomains = ['a', 'b', 'c', 'd'];
+        const sub = subdomains[(tx + ty) % 4];
+        const stylePath = theme === 'voyager' ? 'voyager' : 'dark_all';
+        const uri = apiKey
+          ? `https://${sub}.basemaps.cartocdn.com/rastertiles/${stylePath}/${zoom}/${wrappedTx}/${ty}@2x.png?key=${apiKey}`
+          : `https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/${zoom}/${ty}/${wrappedTx}`;
 
         result.push({
           key: `${zoom}-${wrappedTx}-${ty}`,
-          baseUri,
-          refUri,
+          uri,
           left,
           top,
         });
       }
     }
     return result;
-  }, [centerTileX, centerTileY, zoom, width, height]);
+  }, [centerTileX, centerTileY, zoom, width, height, theme, apiKey]);
 
   // Project route points to SVG coordinate path
   const routePoints = useMemo(() => {
@@ -252,37 +261,20 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
       {/* 1. Real Dark Navigation Street Map Tiles Layer */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         {tiles.map((tile) => (
-          <React.Fragment key={tile.key}>
-            {/* Dark Street Road Network */}
-            <Image
-              source={{ uri: tile.baseUri }}
-              style={[
-                styles.tileImage,
-                {
-                  left: tile.left,
-                  top: tile.top,
-                  width: TILE_SIZE,
-                  height: TILE_SIZE,
-                },
-              ]}
-              resizeMode="cover"
-            />
-            {/* Street & Landmark Labels Overlay */}
-            <Image
-              source={{ uri: tile.refUri }}
-              style={[
-                styles.tileImage,
-                {
-                  left: tile.left,
-                  top: tile.top,
-                  width: TILE_SIZE,
-                  height: TILE_SIZE,
-                  opacity: 0.85,
-                },
-              ]}
-              resizeMode="cover"
-            />
-          </React.Fragment>
+          <Image
+            key={tile.key}
+            source={{ uri: tile.uri }}
+            style={[
+              styles.tileImage,
+              {
+                left: tile.left,
+                top: tile.top,
+                width: TILE_SIZE,
+                height: TILE_SIZE,
+              },
+            ]}
+            resizeMode="cover"
+          />
         ))}
 
         {/* Ambient Dark Mode Vignette & Grid Tone */}
