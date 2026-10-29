@@ -182,14 +182,14 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
         const left = Math.round((tx - centerTileX) * TILE_SIZE + halfW);
         const top = Math.round((ty - centerTileY) * TILE_SIZE + halfH);
 
-        // CartoDB Dark Matter tile URL (high-res retina @2x)
-        const subdomains = ['a', 'b', 'c', 'd'];
-        const sub = subdomains[(tx + ty) % 4];
-        const uri = `https://${sub}.basemaps.cartocdn.com/rastertiles/dark_all/${zoom}/${wrappedTx}/${ty}@2x.png`;
+        // Official Esri Dark Navigation Basemap + Street Reference Labels (No watermark, No API key needed)
+        const baseUri = `https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/${zoom}/${ty}/${wrappedTx}`;
+        const refUri = `https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/${zoom}/${ty}/${wrappedTx}`;
 
         result.push({
           key: `${zoom}-${wrappedTx}-${ty}`,
-          uri,
+          baseUri,
+          refUri,
           left,
           top,
         });
@@ -249,23 +249,40 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
       accessible={false}
       aria-hidden={true}
     >
-      {/* 1. Real Dark Matter Map Tiles Layer */}
+      {/* 1. Real Dark Navigation Street Map Tiles Layer */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         {tiles.map((tile) => (
-          <Image
-            key={tile.key}
-            source={{ uri: tile.uri }}
-            style={[
-              styles.tileImage,
-              {
-                left: tile.left,
-                top: tile.top,
-                width: TILE_SIZE,
-                height: TILE_SIZE,
-              },
-            ]}
-            resizeMode="cover"
-          />
+          <React.Fragment key={tile.key}>
+            {/* Dark Street Road Network */}
+            <Image
+              source={{ uri: tile.baseUri }}
+              style={[
+                styles.tileImage,
+                {
+                  left: tile.left,
+                  top: tile.top,
+                  width: TILE_SIZE,
+                  height: TILE_SIZE,
+                },
+              ]}
+              resizeMode="cover"
+            />
+            {/* Street & Landmark Labels Overlay */}
+            <Image
+              source={{ uri: tile.refUri }}
+              style={[
+                styles.tileImage,
+                {
+                  left: tile.left,
+                  top: tile.top,
+                  width: TILE_SIZE,
+                  height: TILE_SIZE,
+                  opacity: 0.85,
+                },
+              ]}
+              resizeMode="cover"
+            />
+          </React.Fragment>
         ))}
 
         {/* Ambient Dark Mode Vignette & Grid Tone */}
