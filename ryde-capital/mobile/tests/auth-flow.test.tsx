@@ -25,7 +25,7 @@ describe('Mobile Auth Flow (Login & OTP Screens)', () => {
   const mockSignOut = jest.fn<() => Promise<void>>();
   const mockRefreshProfile = jest.fn<() => Promise<void>>();
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     (ExpoRouter.useRouter as jest.Mock).mockReturnValue({
       push: mockPush,
