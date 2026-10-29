@@ -14,6 +14,8 @@ import { colors, typography } from '../src/theme/tokens';
 import { ScreenBackground } from '../src/components/ScreenBackground';
 import { Button } from '../src/components/Button';
 import { useAppStore, getRouteForTripState } from '../src/store/useAppStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LOCALE_STORAGE_KEY } from '../src/store/useI18nStore';
 
 // Keep native splash screen visible until fonts and root view are ready
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -120,6 +122,13 @@ export default function SplashScreenComponent() {
       }
 
       setBootStatus({ step: 'complete' });
+
+      // On first launch, show Language Picker screen before welcome slides
+      const hasChosenLanguage = (await AsyncStorage.getItem(LOCALE_STORAGE_KEY)) !== null;
+      if (!hasChosenLanguage) {
+        router.replace('/(auth)/language');
+        return;
+      }
 
       // Root routing guard for authenticated / onboarding states
       const currentTrip = useAppStore.getState().activeTrip;
