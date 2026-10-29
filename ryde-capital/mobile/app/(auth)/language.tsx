@@ -50,7 +50,7 @@ export default function LanguageScreen() {
           router.replace('/(tabs)/profile');
         }
       } else {
-        router.replace('/(auth)/login');
+        router.replace('/(auth)/welcome');
       }
     } catch (e) {
       console.warn('Failed to save selected locale:', e);
