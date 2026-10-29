@@ -93,14 +93,14 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
       });
       expect(screen.getByText('Get started')).toBeTruthy();
 
-      // Slide 3 -> Complete and navigate to Login
+      // Slide 3 -> Complete and navigate to Language selection
       await act(async () => {
         fireEvent.press(nextButton);
       });
 
       const hasSeen = await AsyncStorage.getItem(HAS_SEEN_WELCOME_KEY);
       expect(hasSeen).toBe('true');
-      expect(mockReplace).toHaveBeenCalledWith('/(auth)/login');
+      expect(mockReplace).toHaveBeenCalledWith('/(auth)/language');
     });
 
     it('saves hasSeenWelcome and navigates to language selection when Skip is pressed', async () => {
@@ -115,7 +115,7 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
 
       const hasSeen = await AsyncStorage.getItem(HAS_SEEN_WELCOME_KEY);
       expect(hasSeen).toBe('true');
-      expect(mockReplace).toHaveBeenCalledWith('/(auth)/login');
+      expect(mockReplace).toHaveBeenCalledWith('/(auth)/language');
     });
 
     it('switches slides when step dots are tapped', async () => {
@@ -182,7 +182,7 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
   });
 
   describe('SplashScreenComponent (Real Boot Sequence & Routing Guard)', () => {
-    it('completes boot steps and routes to /(auth)/language on first launch before welcome slides', async () => {
+    it('completes boot steps and routes to /(auth)/welcome (Landing page) on initial launch when unauthenticated', async () => {
       await AsyncStorage.removeItem(LOCALE_STORAGE_KEY);
 
       await act(async () => {
@@ -199,7 +199,7 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
         await new Promise((resolve) => setTimeout(resolve, 200));
       });
 
-      expect(mockReplace).toHaveBeenCalledWith('/(auth)/language');
+      expect(mockReplace).toHaveBeenCalledWith('/(auth)/welcome');
     });
 
     it('routes to /(auth)/welcome (landing page) when language chosen and no active session exists', async () => {
