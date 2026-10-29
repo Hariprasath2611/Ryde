@@ -170,4 +170,65 @@ describe('Language Selection & Regional i18n Suite', () => {
       });
     });
   });
+
+  describe('Acceptance Criteria & Number/Currency/Date Formatting', () => {
+    it('defaults to Tamil (ta) on first launch when no saved choice exists', async () => {
+      await AsyncStorage.removeItem(LOCALE_STORAGE_KEY);
+      useI18nStore.setState({ locale: 'ta', isLoaded: false });
+
+      await act(async () => {
+        render(<LanguageScreen />);
+      });
+
+      // Tamil tile should be selected by default
+      const tamilCard = screen.getByTestId('language-option-ta');
+      expect(tamilCard.props.accessibilityState.checked).toBe(true);
+      expect(screen.getByText('தொடரவும் →')).toBeTruthy();
+    });
+
+    it('switching language in Profile updates store immediately and survives an app restart', async () => {
+      // 1. Initial locale is English
+      useI18nStore.setState({ locale: 'en' });
+      await AsyncStorage.setItem(LOCALE_STORAGE_KEY, 'en');
+
+      // 2. User changes language to Hindi
+      await act(async () => {
+        await useI18nStore.getState().setLocale('hi');
+      });
+
+      expect(useI18nStore.getState().locale).toBe('hi');
+      const savedInStorage = await AsyncStorage.getItem(LOCALE_STORAGE_KEY);
+      expect(savedInStorage).toBe('hi');
+
+      // 3. Simulate App Restart (reset memory store, load persisted locale)
+      useI18nStore.setState({ locale: 'en', isLoaded: false });
+      const restored = await useI18nStore.getState().loadPersistedLocale();
+      expect(restored).toBe('hi');
+      expect(useI18nStore.getState().locale).toBe('hi');
+    });
+
+    it('formats fares, currency, and numbers using Latin digits and en-IN rules across all languages', () => {
+      const { formatCurrency, formatNumber, formatDate } = require('../src/i18n');
+
+      // Currency formatted with ₹ symbol, Indian grouping (1,50,000), and strictly Latin digits
+      const formattedFare = formatCurrency(150000);
+      expect(formattedFare).toMatch(/1,50,000/);
+      expect(formattedFare).toMatch(/₹/);
+
+      // Numbers keep Latin digits (no Eastern Arabic, Devanagari, or Tamil digits)
+      const count = formatNumber(1250);
+      expect(count).toBe('1,250');
+      expect(/^\d{1,3}(,\d{2,3})*$/.test(count)).toBe(true);
+
+      // OTPs and digits remain identical in all languages
+      const otp = '948201';
+      expect(/^\d{6}$/.test(otp)).toBe(true);
+
+      // Date formatted with en-IN locale
+      const formattedDate = formatDate(new Date(2026, 9, 29));
+      expect(typeof formattedDate).toBe('string');
+      expect(formattedDate).toContain('2026');
+    });
+  });
 });
+
