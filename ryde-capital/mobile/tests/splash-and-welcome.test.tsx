@@ -8,6 +8,7 @@ import * as Location from 'expo-location';
 import SplashScreenComponent from '../app/index';
 import WelcomeScreen, { HAS_SEEN_WELCOME_KEY } from '../app/(auth)/welcome';
 import { useAppStore } from '../src/store/useAppStore';
+import { LOCALE_STORAGE_KEY } from '../src/store/useI18nStore';
 import { mockDriverProfile, mockActiveTrip } from '../src/services/api/mock/data';
 
 jest.mock('expo-router', () => ({
@@ -99,7 +100,7 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
 
       const hasSeen = await AsyncStorage.getItem(HAS_SEEN_WELCOME_KEY);
       expect(hasSeen).toBe('true');
-      expect(mockReplace).toHaveBeenCalledWith('/(auth)/language');
+      expect(mockReplace).toHaveBeenCalledWith('/(auth)/login');
     });
 
     it('saves hasSeenWelcome and navigates to language selection when Skip is pressed', async () => {
@@ -114,7 +115,7 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
 
       const hasSeen = await AsyncStorage.getItem(HAS_SEEN_WELCOME_KEY);
       expect(hasSeen).toBe('true');
-      expect(mockReplace).toHaveBeenCalledWith('/(auth)/language');
+      expect(mockReplace).toHaveBeenCalledWith('/(auth)/login');
     });
 
     it('switches slides when step dots are tapped', async () => {
@@ -181,8 +182,8 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
   });
 
   describe('SplashScreenComponent (Real Boot Sequence & Routing Guard)', () => {
-    it('completes boot steps and routes to /(auth)/welcome on first launch', async () => {
-      await AsyncStorage.removeItem(HAS_SEEN_WELCOME_KEY);
+    it('completes boot steps and routes to /(auth)/language on first launch before welcome slides', async () => {
+      await AsyncStorage.removeItem(LOCALE_STORAGE_KEY);
 
       await act(async () => {
         render(<SplashScreenComponent />);
@@ -198,11 +199,11 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
         await new Promise((resolve) => setTimeout(resolve, 200));
       });
 
-      expect(mockReplace).toHaveBeenCalledWith('/(auth)/welcome');
+      expect(mockReplace).toHaveBeenCalledWith('/(auth)/language');
     });
 
-    it('routes to /(auth)/welcome (landing page) when no active session exists', async () => {
-      await AsyncStorage.setItem(HAS_SEEN_WELCOME_KEY, 'true');
+    it('routes to /(auth)/welcome (landing page) when language chosen and no active session exists', async () => {
+      await AsyncStorage.setItem(LOCALE_STORAGE_KEY, 'ta');
       useAppStore.setState({ token: null, activeTrip: null });
 
       await act(async () => {
@@ -217,6 +218,7 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
     });
 
     it('routes to active trip when driver has an ongoing trip state', async () => {
+      await AsyncStorage.setItem(LOCALE_STORAGE_KEY, 'ta');
       await AsyncStorage.setItem(HAS_SEEN_WELCOME_KEY, 'true');
       useAppStore.setState({
         token: 'valid-driver-token',
@@ -239,6 +241,7 @@ describe('Ryde Capital — Splash/Loading & Welcome Landing Slides', () => {
     });
 
     it('routes approved drivers with no active trip to /(tabs)/home', async () => {
+      await AsyncStorage.setItem(LOCALE_STORAGE_KEY, 'ta');
       await AsyncStorage.setItem(HAS_SEEN_WELCOME_KEY, 'true');
       useAppStore.setState({
         token: 'valid-approved-token',
