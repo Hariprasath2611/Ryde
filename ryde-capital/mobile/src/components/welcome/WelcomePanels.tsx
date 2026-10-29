@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
 import { colors } from '../../theme/tokens';
+import { RealDarkMap } from '../map/RealDarkMap';
 
 export interface PanelProps {
   height: number;
