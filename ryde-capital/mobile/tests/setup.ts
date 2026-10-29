@@ -39,3 +39,15 @@ jest.mock('expo-location', () => ({
   Accuracy: { Balanced: 3, High: 4, Highest: 5 },
   ActivityType: { AutomotiveNavigation: 1 },
 }), { virtual: true });
+
+jest.mock('expo-localization', () => ({
+  getLocales: jest.fn(() => [{ languageCode: 'ta', languageTag: 'ta-IN' }]),
+  locale: 'ta-IN',
+}));
+
+jest.mock('expo-font', () => ({
+  loadAsync: jest.fn(async () => {}),
+  isLoaded: jest.fn(() => true),
+  useFonts: jest.fn(() => [true, null]),
+}));
+
