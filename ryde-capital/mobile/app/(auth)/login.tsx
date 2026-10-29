@@ -74,7 +74,7 @@ export default function LoginScreen() {
 
   return (
     <ScreenBackground deco={true}>
-      <Header showBack={true} onBack={() => router.replace('/(auth)/welcome')} />
+      <Header showBack={true} onBack={() => router.replace('/(auth)/language')} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}

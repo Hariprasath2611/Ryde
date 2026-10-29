@@ -38,16 +38,20 @@ export default function LanguageScreen() {
     Haptics.selectionAsync().catch(() => {});
   };
 
-  // Prevent bypassing language selection via Android hardware back button
+  // Handle hardware back button
   React.useEffect(() => {
-    if (isFromProfile) return;
     const onBackPress = () => {
-      BackHandler.exitApp();
+      if (isFromProfile) {
+        if (router.canGoBack()) router.back();
+        else router.replace('/(tabs)/profile');
+      } else {
+        router.replace('/(auth)/welcome');
+      }
       return true;
     };
     const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
     return () => sub.remove();
-  }, [isFromProfile]);
+  }, [isFromProfile, router]);
 
   const handleConfirm = async () => {
     try {
@@ -62,7 +66,7 @@ export default function LanguageScreen() {
           router.replace('/(tabs)/profile');
         }
       } else {
-        router.replace('/(auth)/welcome');
+        router.replace('/(auth)/login');
       }
     } catch (e) {
       console.warn('Failed to save selected locale:', e);
@@ -78,8 +82,15 @@ export default function LanguageScreen() {
     <ScreenBackground deco={true}>
       <SafeAreaView style={styles.safeArea}>
         <Header
-          showBack={isFromProfile}
-          onBack={() => router.back()}
+          showBack={true}
+          onBack={() => {
+            if (isFromProfile) {
+              if (router.canGoBack()) router.back();
+              else router.replace('/(tabs)/profile');
+            } else {
+              router.replace('/(auth)/welcome');
+            }
+          }}
           showBrand={true}
         />
 
