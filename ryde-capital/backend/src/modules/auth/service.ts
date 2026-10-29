@@ -108,6 +108,28 @@ export class AuthService {
       throw new UnauthorizedError('User authentication context not found');
     }
 
+    if (user.id === 'driver-mock-current') {
+      return {
+        id: user.id,
+        role: user.role,
+        email: user.email,
+        phone: user.phone || '+919790851329',
+        full_name: (user.metadata?.['full_name'] as string) || 'Arun Kumar',
+        account_status: 'active',
+        driver: {
+          id: 'driver-rec-mock',
+          driver_code: 'DRV-1001',
+          verification_status: 'approved',
+          onboarding_status: 'approved',
+          rejection_reason: null,
+          availability_status: 'online',
+          allowed_vehicle_types: ['two_wheeler', 'four_wheeler'],
+          rating_avg: 4.8,
+          rating_count: 25,
+        },
+      };
+    }
+
     // Try fetching from database
     try {
       const profile = await this.repo.getProfileById(user.id);

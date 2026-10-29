@@ -49,6 +49,19 @@ export async function authMiddleware(
     return;
   }
 
+  // Development & Mock preview token support
+  if (process.env.NODE_ENV !== 'production' && token.startsWith('mock-')) {
+    req.user = {
+      id: 'driver-mock-current',
+      phone: '+919790851329',
+      email: 'driver@ryde.in',
+      role: ROLES.DRIVER,
+      metadata: { phone: '+919790851329', full_name: 'Arun Kumar', role: 'driver' },
+    };
+    next();
+    return;
+  }
+
   // OWASP API2: Explicit JWT claims verification (expiry, audience, issuer)
   if (token.includes('.')) {
     try {
