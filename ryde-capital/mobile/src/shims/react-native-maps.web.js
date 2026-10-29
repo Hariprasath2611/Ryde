@@ -46,11 +46,11 @@ const MapView = React.forwardRef(function MapView(props, ref) {
 
   for (let ty = minTy; ty <= maxTy; ty++) {
     for (let tx = minTx; tx <= maxTx; tx++) {
-      const sub = ['a', 'b', 'c', 'd'][(tx + ty) % 4];
-      const uri = `https://${sub}.basemaps.cartocdn.com/rastertiles/dark_all/${zoom}/${tx}/${ty}@2x.png`;
+      const baseUri = `https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/${zoom}/${ty}/${tx}`;
+      const refUri = `https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/${zoom}/${ty}/${tx}`;
       const left = (tx - centerTileX) * TILE_SIZE + 180;
       const top = (ty - centerTileY) * TILE_SIZE + 180;
-      tiles.push({ key: `${tx}-${ty}`, uri, left, top });
+      tiles.push({ key: `${tx}-${ty}`, baseUri, refUri, left, top });
     }
   }
 
@@ -78,20 +78,31 @@ const MapView = React.forwardRef(function MapView(props, ref) {
       testID: testID,
       ...rest,
     },
-    // Real Dark Matter Street Tiles Layer
+    // Real Dark Navigation Street Tiles Layer
     React.createElement(
       View,
       { style: styles.tilesLayer, pointerEvents: 'none' },
       tiles.map((tile) =>
-        React.createElement(Image, {
-          key: tile.key,
-          source: { uri: tile.uri },
-          style: [
-            styles.tileImage,
-            { left: tile.left, top: tile.top, width: TILE_SIZE, height: TILE_SIZE },
-          ],
-          resizeMode: 'cover',
-        })
+        React.createElement(
+          React.Fragment,
+          { key: tile.key },
+          React.createElement(Image, {
+            source: { uri: tile.baseUri },
+            style: [
+              styles.tileImage,
+              { left: tile.left, top: tile.top, width: TILE_SIZE, height: TILE_SIZE },
+            ],
+            resizeMode: 'cover',
+          }),
+          React.createElement(Image, {
+            source: { uri: tile.refUri },
+            style: [
+              styles.tileImage,
+              { left: tile.left, top: tile.top, width: TILE_SIZE, height: TILE_SIZE, opacity: 0.85 },
+            ],
+            resizeMode: 'cover',
+          })
+        )
       ),
       // Subtle ambient vignette
       React.createElement(View, { style: styles.vignetteOverlay }),
