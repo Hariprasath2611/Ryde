@@ -8,12 +8,14 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, typography } from '../../src/theme/tokens';
 import { ScreenBackground } from '../../src/components/ScreenBackground';
 import { Header } from '../../src/components/Header';
 import { OtpInput } from '../../src/components/OtpInput';
 import { Button } from '../../src/components/Button';
-import { en } from '../../src/i18n/en';
+import { useTranslation } from '../../src/i18n';
+import { LOCALE_STORAGE_KEY } from '../../src/store/useI18nStore';
 import { useAuth } from '../../src/store/auth';
 import { useAppStore } from '../../src/store/useAppStore';
 
@@ -27,6 +29,7 @@ export default function OtpScreen() {
 
   const { verifyOtp, sendOtp } = useAuth();
   const { setToken, driver } = useAppStore();
+  const { t } = useTranslation();
 
   const [otp, setOtp] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +38,15 @@ export default function OtpScreen() {
   const [failedAttempts, setFailedAttempts] = useState(0);
 
   const isLockedOut = failedAttempts >= MAX_FAILED_ATTEMPTS;
+
+  // Guard: User must select language before accessing login/otp
+  useEffect(() => {
+    AsyncStorage.getItem(LOCALE_STORAGE_KEY).then((saved) => {
+      if (!saved) {
+        router.replace('/(auth)/language');
+      }
+    });
+  }, [router]);
 
   useEffect(() => {
     if (timer <= 0) return;
@@ -68,7 +80,7 @@ export default function OtpScreen() {
         if (next >= MAX_FAILED_ATTEMPTS) {
           setError('Too many failed attempts. Please request a new OTP.');
         } else {
-          setError(result.error || en.otp.errorInvalid);
+          setError(result.error || t.otp.errorInvalid);
         }
       }
     } catch {
@@ -94,15 +106,15 @@ export default function OtpScreen() {
 
   return (
     <ScreenBackground deco={true}>
-      <Header showBack={true} />
+      <Header showBack={true} onBack={() => router.replace('/(auth)/login')} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
         <View style={styles.container}>
           <View style={styles.content}>
-            <Text style={styles.title}>{en.otp.title}</Text>
-            <Text style={styles.subtitle}>{en.otp.subtitle(phone)}</Text>
+            <Text style={styles.title}>{t.otp.title}</Text>
+            <Text style={styles.subtitle}>{t.otp.subtitle(phone)}</Text>
 
             <View style={styles.otpWrapper}>
               <OtpInput
@@ -133,7 +145,7 @@ export default function OtpScreen() {
             <View style={styles.resendRow}>
               {timer > 0 ? (
                 <Text style={styles.timerText}>
-                  {en.otp.resendIn(timer)} · Resend OTP in {timer}s
+                  {t.otp.resendIn(timer)} · Resend OTP in {timer}s
                 </Text>
               ) : (
                 <TouchableOpacity
@@ -141,7 +153,7 @@ export default function OtpScreen() {
                   onPress={handleResend}
                   disabled={isLoading}
                 >
-                  <Text style={styles.resendActionText}>{en.otp.resend}</Text>
+                  <Text style={styles.resendActionText}>{t.otp.resend}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -150,7 +162,7 @@ export default function OtpScreen() {
           <View style={styles.footer}>
             <Button
               testID="verify-otp-button"
-              title={en.otp.verify}
+              title={t.otp.verify}
               variant="amber"
               onPress={handleVerify}
               loading={isLoading}

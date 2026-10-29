@@ -5,6 +5,8 @@ import LoginScreen from '../app/(auth)/login';
 import OtpScreen from '../app/(auth)/otp';
 import * as AuthStore from '../src/store/auth';
 import * as ExpoRouter from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LOCALE_STORAGE_KEY } from '../src/store/useI18nStore';
 
 jest.mock('expo-router', () => ({
   useRouter: jest.fn(),
@@ -44,6 +46,7 @@ describe('Mobile Auth Flow (Login & OTP Screens)', () => {
       signOut: mockSignOut,
       refreshProfile: mockRefreshProfile,
     });
+    await AsyncStorage.setItem(LOCALE_STORAGE_KEY, 'en');
   });
 
   afterEach(() => {
@@ -52,6 +55,17 @@ describe('Mobile Auth Flow (Login & OTP Screens)', () => {
   });
 
   describe('LoginScreen (Phone Validation & Dispatch)', () => {
+    it('redirects to /(auth)/language if language has not been selected yet', async () => {
+      await AsyncStorage.removeItem(LOCALE_STORAGE_KEY);
+      await act(async () => {
+        render(<LoginScreen />);
+      });
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 20));
+      });
+      expect(mockReplace).toHaveBeenCalledWith('/(auth)/language');
+    });
+
     it('shows error when phone number has fewer than 10 digits', async () => {
       const screen = await render(<LoginScreen />);
       const phoneInput = screen.getByTestId('phone-input');
