@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
+  BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -36,6 +37,17 @@ export default function LanguageScreen() {
     setSelectedLocale(option.id);
     Haptics.selectionAsync().catch(() => {});
   };
+
+  // Prevent bypassing language selection via Android hardware back button
+  React.useEffect(() => {
+    if (isFromProfile) return;
+    const onBackPress = () => {
+      BackHandler.exitApp();
+      return true;
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => sub.remove();
+  }, [isFromProfile]);
 
   const handleConfirm = async () => {
     try {
