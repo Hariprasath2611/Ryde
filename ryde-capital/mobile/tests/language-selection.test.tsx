@@ -23,6 +23,7 @@ describe('Language Selection & Regional i18n Suite', () => {
       back: mockBack,
       canGoBack: mockCanGoBack,
     } as any);
+    jest.mocked(ExpoRouter.useLocalSearchParams).mockReturnValue({});
     useI18nStore.setState({ locale: 'en', isLoaded: true });
     await AsyncStorage.clear();
   });
