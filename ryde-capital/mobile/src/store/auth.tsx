@@ -88,6 +88,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function fetchDriverProfile(token?: string) {
+    if (isUsingMocks) {
+      setDriverProfile({
+        id: user?.id || 'driver-mock-current',
+        phone: user?.user_metadata?.phone || '+919790851329',
+        email: 'driver@ryde.in',
+        full_name: 'Arun Kumar',
+        role: 'driver',
+        account_status: 'active',
+        driver: {
+          id: 'driver-rec-mock',
+          driver_code: 'DRV-1001',
+          verification_status: 'approved',
+          onboarding_status: 'approved',
+          availability_status: 'online',
+          allowed_vehicle_types: ['two_wheeler', 'four_wheeler'],
+          rating_avg: 4.8,
+          rating_count: 25,
+        },
+      });
+      return;
+    }
+
     try {
       if (token) setApiAuthToken(token);
       const profile = await apiClient<DriverProfile>('/auth/me');
@@ -152,7 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const mockUser: User = {
           id: 'driver-mock-current',
           app_metadata: {},
-          user_metadata: { phone },
+          user_metadata: { phone, full_name: 'Arun Kumar' },
           aud: 'authenticated',
           created_at: new Date().toISOString(),
         } as User;
@@ -165,10 +187,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           user: mockUser,
         };
 
+        const mockProfile: DriverProfile = {
+          id: mockUser.id,
+          phone,
+          email: 'driver@ryde.in',
+          full_name: 'Arun Kumar',
+          role: 'driver',
+          account_status: 'active',
+          driver: {
+            id: 'driver-rec-mock',
+            driver_code: 'DRV-1001',
+            verification_status: 'approved',
+            onboarding_status: 'approved',
+            availability_status: 'online',
+            allowed_vehicle_types: ['two_wheeler', 'four_wheeler'],
+            rating_avg: 4.8,
+            rating_count: 25,
+          },
+        };
+
         setSession(mockSession);
         setUser(mockUser);
+        setDriverProfile(mockProfile);
         setApiAuthToken(mockSession.access_token);
-        await fetchDriverProfile(mockSession.access_token);
         return { success: true };
       }
 

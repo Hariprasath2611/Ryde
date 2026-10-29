@@ -22,10 +22,104 @@ export interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;
 }
 
+function getMockData<T>(endpoint: string): T | undefined {
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+
+  if (path === '/auth/me') {
+    return {
+      id: 'driver-mock-current',
+      phone: '+919790851329',
+      email: 'driver@ryde.in',
+      full_name: 'Arun Kumar',
+      role: 'driver',
+      account_status: 'active',
+      driver: {
+        id: 'driver-rec-mock',
+        driver_code: 'DRV-1001',
+        verification_status: 'approved',
+        onboarding_status: 'approved',
+        availability_status: 'online',
+        allowed_vehicle_types: ['two_wheeler', 'four_wheeler'],
+        rating_avg: 4.8,
+        rating_count: 25,
+      },
+    } as unknown as T;
+  }
+
+  if (path === '/drivers/me') {
+    return {
+      driver: {
+        id: 'driver-rec-mock',
+        driver_code: 'DRV-1001',
+        verification_status: 'approved',
+        onboarding_status: 'approved',
+        allowed_vehicle_types: ['two_wheeler', 'four_wheeler'],
+        date_of_birth: '1995-01-01',
+        address_line: '123 Anna Salai',
+        city: 'Chennai',
+        state: 'Tamil Nadu',
+        pincode: '600002',
+        experience_years: 3,
+      },
+      profile: {
+        full_name: 'Arun Kumar',
+      },
+      onboarding: {
+        status: 'approved',
+        rejectionReason: null,
+        submittedAt: '2026-01-01T00:00:00Z',
+        progressPercentage: 100,
+        completedStepsCount: 5,
+        totalStepsCount: 5,
+        canSubmit: false,
+        steps: {
+          personalDetails: { name: 'Personal Details', status: 'completed', details: {} },
+          vehicleTypes: { name: 'Vehicle Types', status: 'completed', details: {} },
+          idProof: { name: 'ID Proof', status: 'completed', details: { maskedReference: 'XXXX XXXX 1234' } },
+          license: {
+            name: 'Driving Licence',
+            status: 'completed',
+            details: {
+              frontFilePath: 'lic_f.jpg',
+              backFilePath: 'lic_b.jpg',
+              licenseNumber: 'TN0120200001234',
+              expiryDate: '2032-12-31',
+            },
+          },
+          selfie: { name: 'Profile Photo', status: 'completed', details: {} },
+        },
+      },
+    } as unknown as T;
+  }
+
+  if (path === '/auth/complete-signup') {
+    return { success: true } as unknown as T;
+  }
+
+  if (path.startsWith('/drivers/me/location')) {
+    return { success: true, data: { accepted: 1 } } as unknown as T;
+  }
+
+  if (path === '/notifications/device-token') {
+    return { success: true } as unknown as T;
+  }
+
+  return undefined;
+}
+
 export async function apiClient<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+
+  if (isUsingMocks && (!activeAuthToken || activeAuthToken.startsWith('mock-'))) {
+    const mockData = getMockData<T>(cleanEndpoint);
+    if (mockData !== undefined) {
+      return mockData;
+    }
+  }
+
   const { params, headers, ...restOptions } = options;
 
-  let url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  let url = `${API_BASE_URL}${cleanEndpoint}`;
 
   if (params) {
     const searchParams = new URLSearchParams();
@@ -47,17 +141,29 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     requestHeaders.set('Authorization', `Bearer ${activeAuthToken}`);
   }
 
-  const response = await fetch(url, {
-    ...restOptions,
-    headers: requestHeaders,
-  });
+  try {
+    const response = await fetch(url, {
+      ...restOptions,
+      headers: requestHeaders,
+    });
 
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}));
-    throw new Error(
-      errorBody?.error?.message || `API request failed with status ${response.status}`,
-    );
+    if (!response.ok) {
+      if (isUsingMocks) {
+        const fallback = getMockData<T>(cleanEndpoint);
+        if (fallback !== undefined) return fallback;
+      }
+      const errorBody = await response.json().catch(() => ({}));
+      throw new Error(
+        errorBody?.error?.message || `API request failed with status ${response.status}`,
+      );
+    }
+
+    return response.json() as Promise<T>;
+  } catch (err) {
+    if (isUsingMocks) {
+      const fallback = getMockData<T>(cleanEndpoint);
+      if (fallback !== undefined) return fallback;
+    }
+    throw err;
   }
-
-  return response.json() as Promise<T>;
 }
