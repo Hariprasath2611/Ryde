@@ -84,9 +84,6 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
   routeCoordinates = DEFAULT_ROUTE,
   showRoute = true,
   showPickup = true,
-  showDrop = true,
-  showDriver = true,
-  driverHeading = 42,
   statusText = 'GPS Live • Anna Salai, Chennai',
   theme = 'voyager',
   apiKey = DEFAULT_CARTO_KEY,
@@ -99,8 +96,6 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
 
   // Radar Pulse Animation for Pickup
   const pulseAnim = useRef(new Animated.Value(0)).current;
-  // Vehicle Floating Animation
-  const driverFloatAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (isTest) return;
@@ -114,30 +109,12 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
       })
     );
 
-    // Subtle vehicle hover
-    const floatLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(driverFloatAnim, {
-          toValue: -3,
-          duration: 1200,
-          useNativeDriver: Platform.OS !== 'web',
-        }),
-        Animated.timing(driverFloatAnim, {
-          toValue: 2,
-          duration: 1200,
-          useNativeDriver: Platform.OS !== 'web',
-        }),
-      ])
-    );
-
     pulseLoop.start();
-    floatLoop.start();
 
     return () => {
       pulseLoop.stop();
-      floatLoop.stop();
     };
-  }, [pulseAnim, driverFloatAnim, isTest]);
+  }, [pulseAnim, isTest]);
 
   const handleLayout = (e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
@@ -220,24 +197,6 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
   }, [routePoints]);
 
   const pickupPos = useMemo(() => toPixel(pickup), [toPixel, pickup]);
-  const dropPos = useMemo(() => toPixel(drop), [toPixel, drop]);
-
-  // Driver vehicle position: midpoint of route
-  const driverPos = useMemo(() => {
-    if (routePoints.length >= 3) {
-      // Station on the second waypoint or midpoint
-      const p1 = routePoints[1];
-      const p2 = routePoints[2];
-      return {
-        x: Math.round((p1.x + p2.x) / 2),
-        y: Math.round((p1.y + p2.y) / 2),
-      };
-    }
-    return {
-      x: Math.round((pickupPos.x + dropPos.x) / 2),
-      y: Math.round((pickupPos.y + dropPos.y) / 2),
-    };
-  }, [routePoints, pickupPos, dropPos]);
 
   // Interpolated animation values for radar wave
   const radarScale = pulseAnim.interpolate({
@@ -343,16 +302,6 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
             </G>
           ) : null}
 
-          {/* Drop Destination Pin (Crimson Red with white inner core) */}
-          {showDrop ? (
-            <G transform={`translate(${dropPos.x}, ${dropPos.y})`}>
-              {/* Drop Shadow */}
-              <Circle cx={1} cy={3} r={11} fill="#000000" fillOpacity={0.5} />
-              {/* Red Beacon */}
-              <Circle cx={0} cy={0} r={10} fill="#EF4444" />
-              <Circle cx={0} cy={0} r={4} fill="#FFFFFF" />
-            </G>
-          ) : null}
         </Svg>
       </View>
 
@@ -372,34 +321,7 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
         />
       ) : null}
 
-      {/* 4. Ola / Rapido Live Driver Vehicle Marker */}
-      {showDriver ? (
-        <Animated.View
-          style={[
-            styles.driverMarkerContainer,
-            {
-              left: driverPos.x - 18,
-              top: driverPos.y - 18,
-              transform: [
-                { translateY: isTest ? 0 : driverFloatAnim },
-                { rotate: `${driverHeading}deg` },
-              ],
-            },
-          ]}
-          pointerEvents="none"
-        >
-          {/* Driver Vehicle Aura */}
-          <View style={styles.driverAura} />
-          {/* Rapido / Ola Auto-Bike Icon */}
-          <View style={[styles.driverIconBox, isBright && styles.brightDriverIconBox]}>
-            <Text style={styles.driverIconText}>🛺</Text>
-          </View>
-          {/* Directional Heading Cone */}
-          <View style={styles.headingIndicator} />
-        </Animated.View>
-      ) : null}
-
-      {/* 5. Live Navigation Status Badge (Top-Left) */}
+      {/* 4. Live Navigation Status Badge (Top-Left) */}
       {statusText ? (
         <View style={[styles.statusBadge, isBright && styles.brightStatusBadge]} pointerEvents="none">
           <View style={styles.statusDot} />
