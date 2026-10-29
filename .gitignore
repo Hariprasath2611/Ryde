@@ -51,11 +51,3 @@ coverage/
 tmp/
 temp/
 
-# Captain app dependencies and generated files
-Rydecaptain/node_modules/
-Rydecaptain/.expo/
-Rydecaptain/android/.gradle/
-Rydecaptain/android/app/build/
-Rydecaptain/android/build/
-Rydecaptain/android/app/src/main/assets/index.android.bundle
-Rydecaptain/android/app/debug.keystore
