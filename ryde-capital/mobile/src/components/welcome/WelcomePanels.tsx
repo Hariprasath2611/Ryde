@@ -141,9 +141,9 @@ export const Slide2Panel: React.FC<PanelProps> = ({ height, reduceMotion = false
   const float3 = useFloatingOffset(reduceMotion, 1200);
 
   return (
-    <View style={[styles.panelBase, styles.darkMapPanel, { height }]}>
-      {/* Real Rapido/Ola Dark Navigation Map */}
-      <RealDarkMap style={StyleSheet.absoluteFill} />
+    <View style={[styles.panelBase, styles.brightMapPanel, { height }]}>
+      {/* Real Rapido/Ola Bright Navigation Map */}
+      <RealDarkMap theme="voyager" style={StyleSheet.absoluteFill} />
 
       {/* Accessible Floating Chips */}
       <Animated.View

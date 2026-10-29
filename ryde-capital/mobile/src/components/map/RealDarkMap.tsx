@@ -88,7 +88,7 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
   showDriver = true,
   driverHeading = 42,
   statusText = 'GPS Live • Anna Salai, Chennai',
-  theme = 'dark',
+  theme = 'voyager',
   apiKey = DEFAULT_CARTO_KEY,
   style,
   testID = 'real-dark-map',
@@ -250,15 +250,17 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
     outputRange: [0.8, 0.4, 0],
   });
 
+  const isBright = theme === 'voyager';
+
   return (
     <View
-      style={[styles.container, style]}
+      style={[styles.container, isBright && styles.brightContainer, style]}
       onLayout={handleLayout}
       testID={testID}
       accessible={false}
       aria-hidden={true}
     >
-      {/* 1. Real Dark Navigation Street Map Tiles Layer */}
+      {/* 1. Real Bright/Dark Navigation Street Map Tiles Layer */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         {tiles.map((tile) => (
           <Image
@@ -266,6 +268,7 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
             source={{ uri: tile.uri }}
             style={[
               styles.tileImage,
+              isBright && styles.brightTileImage,
               {
                 left: tile.left,
                 top: tile.top,
@@ -277,8 +280,8 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
           />
         ))}
 
-        {/* Ambient Dark Mode Vignette & Grid Tone */}
-        <View style={styles.vignetteOverlay} />
+        {/* Ambient Map Vignette */}
+        <View style={isBright ? styles.brightVignette : styles.vignetteOverlay} />
       </View>
 
       {/* 2. Real GPS Navigation Route & Vector Overlays */}
@@ -292,8 +295,8 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
               <Stop offset="100%" stopColor="#3B82F6" stopOpacity="1" />
             </LinearGradient>
             <LinearGradient id="haloGlow" x1="0%" y1="100%" x2="100%" y2="0%">
-              <Stop offset="0%" stopColor="#00E5FF" stopOpacity="0.35" />
-              <Stop offset="100%" stopColor="#2563EB" stopOpacity="0.25" />
+              <Stop offset="0%" stopColor="#00E5FF" stopOpacity={0.35} />
+              <Stop offset="100%" stopColor="#2563EB" stopOpacity={0.25} />
             </LinearGradient>
           </Defs>
 
@@ -388,7 +391,7 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
           {/* Driver Vehicle Aura */}
           <View style={styles.driverAura} />
           {/* Rapido / Ola Auto-Bike Icon */}
-          <View style={styles.driverIconBox}>
+          <View style={[styles.driverIconBox, isBright && styles.brightDriverIconBox]}>
             <Text style={styles.driverIconText}>🛺</Text>
           </View>
           {/* Directional Heading Cone */}
@@ -398,21 +401,21 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
 
       {/* 5. Live Navigation Status Badge (Top-Left) */}
       {statusText ? (
-        <View style={styles.statusBadge} pointerEvents="none">
+        <View style={[styles.statusBadge, isBright && styles.brightStatusBadge]} pointerEvents="none">
           <View style={styles.statusDot} />
-          <Text style={styles.statusText}>{statusText}</Text>
+          <Text style={[styles.statusText, isBright && styles.brightStatusText]}>{statusText}</Text>
         </View>
       ) : null}
 
       {/* 6. Compass / North Indicator (Top-Right) */}
-      <View style={styles.compassBadge} pointerEvents="none">
-        <Text style={styles.compassText}>🧭 N</Text>
+      <View style={[styles.compassBadge, isBright && styles.brightCompassBadge]} pointerEvents="none">
+        <Text style={[styles.compassText, isBright && styles.brightCompassText]}>🧭 N</Text>
       </View>
 
       {/* 7. Live Speed / Traffic Pill (Bottom-Left) */}
-      <View style={styles.trafficPill} pointerEvents="none">
-        <Text style={styles.trafficSpeed}>38</Text>
-        <Text style={styles.trafficUnit}>km/h</Text>
+      <View style={[styles.trafficPill, isBright && styles.brightTrafficPill]} pointerEvents="none">
+        <Text style={[styles.trafficSpeed, isBright && styles.brightTrafficSpeed]}>38</Text>
+        <Text style={[styles.trafficUnit, isBright && styles.brightTrafficUnit]}>km/h</Text>
       </View>
     </View>
   );
@@ -426,13 +429,68 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  brightContainer: {
+    backgroundColor: '#F5F3ED', // CartoDB Voyager bright base
+  },
   tileImage: {
     position: 'absolute',
     backgroundColor: '#0B111E',
   },
+  brightTileImage: {
+    backgroundColor: '#F5F3ED',
+  },
   vignetteOverlay: {
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(10, 17, 30, 0.18)',
+  },
+  brightVignette: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+  },
+  brightDriverIconBox: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#D97706',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+  },
+  brightStatusBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+  },
+  brightStatusText: {
+    color: '#0F172A',
+    fontWeight: '700',
+  },
+  brightCompassBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+  },
+  brightCompassText: {
+    color: '#334155',
+  },
+  brightTrafficPill: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderColor: '#BFDBFE',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+  },
+  brightTrafficSpeed: {
+    color: '#1D4ED8',
+  },
+  brightTrafficUnit: {
+    color: '#64748B',
   },
   radarWave: {
     position: 'absolute',
