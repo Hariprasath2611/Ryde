@@ -58,7 +58,8 @@ export const MapViewWrapper: React.FC<MapViewWrapperProps> = memo(({
         showPickup={true}
         showDrop={true}
         showDriver={true}
-        statusText="GPS Live • Chennai TN"
+        theme="voyager"
+        statusText="GPS Live • Accurate Lock"
         style={StyleSheet.absoluteFill}
       />
     </View>
@@ -70,7 +71,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: shape.cardRadius,
     overflow: 'hidden',
-    backgroundColor: colors.map,
+    backgroundColor: '#F5F3ED',
   },
   fullScreen: {
     flex: 1,

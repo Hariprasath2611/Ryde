@@ -2,6 +2,7 @@ const React = require('react');
 const { View, Text, StyleSheet, Image } = require('react-native');
 
 const TILE_SIZE = 256;
+const CARTO_API_KEY = 'cb1_4xr2_1_b81942231c0c7d3505a25c5b';
 
 function lon2tile(lon, zoom) {
   return ((lon + 180) / 360) * Math.pow(2, zoom);
@@ -15,7 +16,13 @@ function lat2tile(lat, zoom) {
   );
 }
 
-// Real Dark MapView component for Web (Ola / Rapido dark navigation style)
+const MapContext = React.createContext({
+  center: { latitude: 13.0418, longitude: 80.2341 },
+  zoom: 14,
+  dimensions: { width: 360, height: 390 },
+});
+
+// Real Bright MapView component for Web (CartoDB Voyager bright style)
 const MapView = React.forwardRef(function MapView(props, ref) {
   const {
     style,
@@ -26,38 +33,47 @@ const MapView = React.forwardRef(function MapView(props, ref) {
     ...rest
   } = props;
 
-  const currentRegion = region || initialRegion || {
-    latitude: 13.0418,
-    longitude: 80.2341,
-    latitudeDelta: 0.05,
-    longitudeDelta: 0.05,
+  const [activeRegion, setActiveRegion] = React.useState(
+    region || initialRegion || {
+      latitude: 13.0418,
+      longitude: 80.2341,
+      latitudeDelta: 0.015,
+      longitudeDelta: 0.015,
+    }
+  );
+
+  const [dimensions, setDimensions] = React.useState({ width: 360, height: 390 });
+
+  // Sync region prop when it changes
+  React.useEffect(() => {
+    if (region && (region.latitude !== activeRegion.latitude || region.longitude !== activeRegion.longitude)) {
+      setActiveRegion(region);
+    }
+  }, [region?.latitude, region?.longitude]);
+
+  const handleLayout = (e) => {
+    if (e && e.nativeEvent && e.nativeEvent.layout) {
+      const { width, height } = e.nativeEvent.layout;
+      if (width > 0 && height > 0) {
+        if (Math.abs(width - dimensions.width) > 2 || Math.abs(height - dimensions.height) > 2) {
+          setDimensions({ width, height });
+        }
+      }
+    }
   };
 
-  const zoom = 14;
-  const centerTileX = lon2tile(currentRegion.longitude, zoom);
-  const centerTileY = lat2tile(currentRegion.latitude, zoom);
-
-  // 3x3 surrounding tiles
-  const tiles = [];
-  const minTx = Math.floor(centerTileX) - 1;
-  const maxTx = Math.floor(centerTileX) + 1;
-  const minTy = Math.floor(centerTileY) - 1;
-  const maxTy = Math.floor(centerTileY) + 1;
-
-  const CARTO_API_KEY = 'cb1_4xr2_1_b81942231c0c7d3505a25c5b';
-
-  for (let ty = minTy; ty <= maxTy; ty++) {
-    for (let tx = minTx; tx <= maxTx; tx++) {
-      const sub = ['a', 'b', 'c', 'd'][(tx + ty) % 4];
-      const uri = `https://${sub}.basemaps.cartocdn.com/rastertiles/dark_all/${zoom}/${tx}/${ty}@2x.png?key=${CARTO_API_KEY}`;
-      const left = (tx - centerTileX) * TILE_SIZE + 180;
-      const top = (ty - centerTileY) * TILE_SIZE + 180;
-      tiles.push({ key: `${tx}-${ty}`, uri, left, top });
-    }
-  }
-
   React.useImperativeHandle(ref, () => ({
-    animateToRegion: (r, duration) => {},
+    animateToRegion: (r, duration) => {
+      if (r && r.latitude && r.longitude) {
+        setActiveRegion((prev) => ({
+          ...prev,
+          latitude: r.latitude,
+          longitude: r.longitude,
+          latitudeDelta: r.latitudeDelta || prev.latitudeDelta || 0.015,
+          longitudeDelta: r.longitudeDelta || prev.longitudeDelta || 0.015,
+        }));
+      }
+    },
     animateCamera: (camera, options) => {},
     fitToElements: (options) => {},
     fitToSuppliedMarkers: (markers, options) => {},
@@ -73,14 +89,44 @@ const MapView = React.forwardRef(function MapView(props, ref) {
     coordinateForPoint: async (point) => ({ latitude: 0, longitude: 0 }),
   }));
 
+  const zoom = 14;
+  const { width, height } = dimensions;
+  const centerTileX = lon2tile(activeRegion.longitude, zoom);
+  const centerTileY = lat2tile(activeRegion.latitude, zoom);
+
+  const halfW = width / 2;
+  const halfH = height / 2;
+
+  const minTx = Math.floor(centerTileX - halfW / TILE_SIZE) - 1;
+  const maxTx = Math.floor(centerTileX + halfW / TILE_SIZE) + 1;
+  const minTy = Math.floor(centerTileY - halfH / TILE_SIZE) - 1;
+  const maxTy = Math.floor(centerTileY + halfH / TILE_SIZE) + 1;
+
+  const tiles = [];
+  const maxTileIndex = Math.pow(2, zoom) - 1;
+
+  for (let ty = minTy; ty <= maxTy; ty++) {
+    if (ty < 0 || ty > maxTileIndex) continue;
+    for (let tx = minTx; tx <= maxTx; tx++) {
+      const wrappedTx = ((tx % (maxTileIndex + 1)) + (maxTileIndex + 1)) % (maxTileIndex + 1);
+      const sub = ['a', 'b', 'c', 'd'][(tx + ty) % 4];
+      // CartoDB Voyager Bright Tiles
+      const uri = `https://${sub}.basemaps.cartocdn.com/rastertiles/voyager/${zoom}/${wrappedTx}/${ty}@2x.png?key=${CARTO_API_KEY}`;
+      const left = Math.round((tx - centerTileX) * TILE_SIZE + halfW);
+      const top = Math.round((ty - centerTileY) * TILE_SIZE + halfH);
+      tiles.push({ key: `${zoom}-${wrappedTx}-${ty}`, uri, left, top });
+    }
+  }
+
   return React.createElement(
     View,
     {
       style: [styles.mapContainer, style],
+      onLayout: handleLayout,
       testID: testID,
       ...rest,
     },
-    // Real Dark Navigation Street Tiles Layer
+    // Real Bright Street Tiles Layer
     React.createElement(
       View,
       { style: styles.tilesLayer, pointerEvents: 'none' },
@@ -95,9 +141,9 @@ const MapView = React.forwardRef(function MapView(props, ref) {
           resizeMode: 'cover',
         })
       ),
-      // Subtle ambient vignette
+      // Subtle ambient overlay
       React.createElement(View, { style: styles.vignetteOverlay }),
-      // Ola/Rapido Live GPS Badge
+      // Live GPS Badge
       React.createElement(
         View,
         { style: styles.mapBadge },
@@ -105,34 +151,62 @@ const MapView = React.forwardRef(function MapView(props, ref) {
         React.createElement(
           Text,
           { style: styles.mapBadgeText },
-          'GPS Live • Anna Salai, Chennai'
+          `GPS Live • ${activeRegion.latitude.toFixed(4)}, ${activeRegion.longitude.toFixed(4)}`
         )
       )
     ),
-    // Map Children (Markers, Polylines, etc.)
+    // Map Context Provider for Children (Markers, Polylines)
     React.createElement(
-      View,
-      { style: styles.childrenContainer },
-      children
+      MapContext.Provider,
+      { value: { center: activeRegion, zoom, dimensions } },
+      React.createElement(
+        View,
+        { style: styles.childrenContainer, pointerEvents: 'box-none' },
+        children
+      )
     )
   );
 });
 
-// Mock Marker component
+// Accurate Marker component
 function Marker(props) {
   const { children, coordinate, title, description, testID = 'web-map-marker', ...rest } = props;
+  const context = React.useContext(MapContext);
+
+  let markerStyle = styles.markerWrapper;
+
+  if (coordinate && context && context.center) {
+    const { center, zoom, dimensions } = context;
+    const centerTx = lon2tile(center.longitude, zoom);
+    const centerTy = lat2tile(center.latitude, zoom);
+    const coordTx = lon2tile(coordinate.longitude, zoom);
+    const coordTy = lat2tile(coordinate.latitude, zoom);
+
+    const x = Math.round((coordTx - centerTx) * TILE_SIZE + dimensions.width / 2);
+    const y = Math.round((coordTy - centerTy) * TILE_SIZE + dimensions.height / 2);
+
+    markerStyle = [
+      styles.markerWrapper,
+      {
+        position: 'absolute',
+        left: x,
+        top: y,
+        transform: [{ translateX: -18 }, { translateY: -18 }],
+      },
+    ];
+  }
 
   if (children) {
     return React.createElement(
       View,
-      { style: styles.markerWrapper, testID: testID, ...rest },
+      { style: markerStyle, testID: testID, ...rest },
       children
     );
   }
 
   return React.createElement(
     View,
-    { style: styles.defaultMarkerPin, testID: testID, ...rest },
+    { style: [styles.defaultMarkerPin, markerStyle], testID: testID, ...rest },
     React.createElement(Text, { style: styles.defaultMarkerIcon }, '📍'),
     title ? React.createElement(Text, { style: styles.markerTitleText }, title) : null
   );
@@ -140,10 +214,10 @@ function Marker(props) {
 
 // Mock Polyline component
 function Polyline(props) {
-  const { strokeColor = '#10B981', strokeWidth = 3, testID = 'web-map-polyline' } = props;
+  const { strokeColor = '#2563EB', strokeWidth = 4, testID = 'web-map-polyline' } = props;
   return React.createElement(
     View,
-    { style: styles.polylineContainer, testID: testID },
+    { style: styles.polylineContainer, testID: testID, pointerEvents: 'none' },
     React.createElement(View, {
       style: [styles.routeLineIndicator, { backgroundColor: strokeColor, height: strokeWidth }]
     })
@@ -195,94 +269,24 @@ const PROVIDER_DEFAULT = 'default';
 
 const styles = StyleSheet.create({
   mapContainer: {
-    backgroundColor: '#0A111E',
+    backgroundColor: '#F5F3ED', // CartoDB Voyager bright base
     overflow: 'hidden',
     position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: '100%',
+    height: '100%',
   },
   tilesLayer: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#0B111E',
+    backgroundColor: '#F5F3ED',
     overflow: 'hidden',
   },
   tileImage: {
     position: 'absolute',
-    backgroundColor: '#0B111E',
+    backgroundColor: '#F5F3ED',
   },
   vignetteOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(10, 17, 30, 0.25)',
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#10B981',
-    marginRight: 6,
-  },
-  gridOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#0F172A',
-    overflow: 'hidden',
-  },
-  roadLine: {
-    position: 'absolute',
-    backgroundColor: '#1E293B',
-  },
-  roadH1: {
-    left: 0,
-    right: 0,
-    top: '25%',
-    height: 10,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#334155',
-  },
-  roadH2: {
-    left: 0,
-    right: 0,
-    top: '55%',
-    height: 16,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#334155',
-  },
-  roadH3: {
-    left: 0,
-    right: 0,
-    top: '80%',
-    height: 8,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#334155',
-  },
-  roadV1: {
-    top: 0,
-    bottom: 0,
-    left: '20%',
-    width: 8,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: '#334155',
-  },
-  roadV2: {
-    top: 0,
-    bottom: 0,
-    left: '50%',
-    width: 14,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: '#334155',
-  },
-  roadV3: {
-    top: 0,
-    bottom: 0,
-    left: '75%',
-    width: 10,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: '#334155',
+    backgroundColor: 'rgba(0, 0, 0, 0.02)',
   },
   mapBadge: {
     position: 'absolute',
@@ -290,26 +294,36 @@ const styles = StyleSheet.create({
     left: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+  },
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#10B981',
+    marginRight: 6,
   },
   mapBadgeText: {
-    color: '#94A3B8',
+    color: '#0F172A',
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   childrenContainer: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   markerWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 10,
   },
   defaultMarkerPin: {
     alignItems: 'center',
@@ -319,29 +333,34 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   markerTitleText: {
-    color: '#F8FAFC',
+    color: '#0F172A',
     fontSize: 11,
     fontWeight: '700',
-    backgroundColor: '#0F172AEE',
+    backgroundColor: '#FFFFFFEE',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
     marginTop: 2,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   polylineContainer: {
     position: 'absolute',
     width: '60%',
     alignItems: 'center',
+    zIndex: 5,
   },
   routeLineIndicator: {
     width: '100%',
     borderRadius: 2,
-    opacity: 0.8,
+    opacity: 0.9,
   },
   calloutBox: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     padding: 8,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
 });
 

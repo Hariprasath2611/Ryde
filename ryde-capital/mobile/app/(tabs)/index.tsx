@@ -84,6 +84,40 @@ export default function HomeScreen() {
       }
 
       try {
+        // High accuracy device GPS positioning
+        if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              if (!isMounted) return;
+              const coords = {
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+                heading: pos.coords.heading ?? 0,
+              };
+              setCurrentCoords(coords);
+              setGpsAccuracy(pos.coords.accuracy && pos.coords.accuracy > 40 ? 'weak' : 'accurate');
+              mapRef.current?.animateToRegion({
+                latitude: coords.latitude,
+                longitude: coords.longitude,
+                latitudeDelta: 0.015,
+                longitudeDelta: 0.015,
+              });
+              sendLocationUpdate({
+                latitude: coords.latitude,
+                longitude: coords.longitude,
+                heading: coords.heading,
+                speed: pos.coords.speed,
+                accuracy: pos.coords.accuracy,
+                recordedAt: new Date(pos.timestamp).toISOString(),
+              }).catch(() => {});
+            },
+            (err) => {
+              console.warn('Web geolocation prompt notice:', err);
+            },
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+          );
+        }
+
         const initial = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.High,
         });
@@ -119,9 +153,9 @@ export default function HomeScreen() {
         // Watch foreground location
         watchSubscription = await Location.watchPositionAsync(
           {
-            accuracy: Location.Accuracy.Balanced,
-            timeInterval: 10000,
-            distanceInterval: 10,
+            accuracy: Location.Accuracy.High,
+            timeInterval: 5000,
+            distanceInterval: 5,
           },
           (loc) => {
             if (!isMounted) return;
@@ -224,13 +258,59 @@ export default function HomeScreen() {
     }
   };
 
-  const recenterMap = () => {
-    mapRef.current?.animateToRegion({
-      latitude: currentCoords.latitude,
-      longitude: currentCoords.longitude,
-      latitudeDelta: 0.015,
-      longitudeDelta: 0.015,
-    });
+  const recenterMap = async () => {
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const coords = {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            heading: pos.coords.heading ?? 0,
+          };
+          setCurrentCoords(coords);
+          setGpsAccuracy('accurate');
+          mapRef.current?.animateToRegion({
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            latitudeDelta: 0.015,
+            longitudeDelta: 0.015,
+          });
+        },
+        () => {
+          mapRef.current?.animateToRegion({
+            latitude: currentCoords.latitude,
+            longitude: currentCoords.longitude,
+            latitudeDelta: 0.015,
+            longitudeDelta: 0.015,
+          });
+        },
+        { enableHighAccuracy: true, timeout: 6000 }
+      );
+    } else {
+      try {
+        const fresh = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        const coords = {
+          latitude: fresh.coords.latitude,
+          longitude: fresh.coords.longitude,
+          heading: fresh.coords.heading ?? 0,
+        };
+        setCurrentCoords(coords);
+        setGpsAccuracy('accurate');
+        mapRef.current?.animateToRegion({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          latitudeDelta: 0.015,
+          longitudeDelta: 0.015,
+        });
+      } catch {
+        mapRef.current?.animateToRegion({
+          latitude: currentCoords.latitude,
+          longitude: currentCoords.longitude,
+          latitudeDelta: 0.015,
+          longitudeDelta: 0.015,
+        });
+      }
+    }
   };
 
   return (
@@ -405,20 +485,22 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 20,
     bottom: 120,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#1E293B',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 6,
   },
   recenterText: {
-    fontSize: 22,
+    fontSize: 24,
   },
   bottomBar: {
     position: 'absolute',

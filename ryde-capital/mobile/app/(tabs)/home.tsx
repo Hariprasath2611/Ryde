@@ -16,6 +16,7 @@ import { MapViewWrapper } from '../../src/components/MapViewWrapper';
 import { BottomTabs } from '../../src/components/BottomTabs';
 import { en } from '../../src/i18n/en';
 import { formatINR } from '../../src/utils/format';
+import * as Location from 'expo-location';
 import { useAppStore } from '../../src/store/useAppStore';
 
 export default function HomeScreen() {
@@ -27,6 +28,38 @@ export default function HomeScreen() {
     currentOffer,
     notifications,
   } = useAppStore();
+
+  const [deviceCoords, setDeviceCoords] = React.useState<{ latitude: number; longitude: number } | null>(null);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (!isMounted) return;
+          setDeviceCoords({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          });
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 6000 }
+      );
+    }
+    Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
+      .then((loc) => {
+        if (!isMounted) return;
+        setDeviceCoords({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        });
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const unreadNotifs = notifications.some((n) => !n.read);
 
@@ -112,8 +145,8 @@ export default function HomeScreen() {
         ) : (
           /* Online View (13-HomeOnline) */
           <View style={styles.onlineContainer}>
-            {/* Dark Styled In-App Map */}
-            <MapViewWrapper height={320} style={styles.mapCard} />
+            {/* Bright Styled In-App Map with Live Device GPS */}
+            <MapViewWrapper origin={deviceCoords || undefined} height={320} style={styles.mapCard} />
 
             {/* Online Status White Card */}
             <Card variant="white" style={styles.statusWhiteCard}>
