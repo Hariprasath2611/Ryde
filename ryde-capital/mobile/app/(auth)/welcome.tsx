@@ -113,14 +113,14 @@ export default function WelcomeScreen() {
     Haptics.selectionAsync().catch(() => {});
   }, [reduceMotion]);
 
-  // Complete welcome flow and navigate to login
+  // Complete welcome flow and navigate to language selection
   const completeWelcome = useCallback(async () => {
     try {
       await AsyncStorage.setItem(HAS_SEEN_WELCOME_KEY, 'true');
     } catch (e) {
       console.warn('Failed to save welcome state to storage:', e);
     }
-    router.replace('/(auth)/login');
+    router.replace('/(auth)/language');
   }, [router]);
 
   // Handle Next button press
