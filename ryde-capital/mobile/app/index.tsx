@@ -123,13 +123,6 @@ export default function SplashScreenComponent() {
 
       setBootStatus({ step: 'complete' });
 
-      // On first launch, show Language Picker screen before welcome slides
-      const hasChosenLanguage = (await AsyncStorage.getItem(LOCALE_STORAGE_KEY)) !== null;
-      if (!hasChosenLanguage) {
-        router.replace('/(auth)/language');
-        return;
-      }
-
       // Root routing guard for authenticated / onboarding states
       const currentTrip = useAppStore.getState().activeTrip;
       if (currentTrip) {

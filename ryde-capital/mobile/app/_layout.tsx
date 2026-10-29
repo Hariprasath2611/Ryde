@@ -18,6 +18,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     // Public screens accessible without auth redirection
     const currentSegment = (segments[0] as string) || '';
     const isPublicScreen =
+      currentSegment === '' ||
+      currentSegment === 'index' ||
       currentSegment === 'terms' ||
       currentSegment === 'privacy' ||
       currentSegment === 'offline' ||
@@ -29,8 +31,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     const inOnboardingGroup = segments[0] === '(onboarding)';
 
     if (!session) {
-      if (!inAuthGroup && currentSegment !== '') {
-        router.replace('/(auth)/login');
+      if (!inAuthGroup) {
+        router.replace('/(auth)/welcome');
       }
       return;
     }
