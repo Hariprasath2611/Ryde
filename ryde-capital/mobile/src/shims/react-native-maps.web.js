@@ -1,7 +1,21 @@
 const React = require('react');
-const { View, Text, StyleSheet } = require('react-native');
+const { View, Text, StyleSheet, Image } = require('react-native');
 
-// Mock MapView component for Web
+const TILE_SIZE = 256;
+
+function lon2tile(lon, zoom) {
+  return ((lon + 180) / 360) * Math.pow(2, zoom);
+}
+
+function lat2tile(lat, zoom) {
+  const rad = (lat * Math.PI) / 180;
+  return (
+    ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) *
+    Math.pow(2, zoom)
+  );
+}
+
+// Real Dark MapView component for Web (Ola / Rapido dark navigation style)
 const MapView = React.forwardRef(function MapView(props, ref) {
   const {
     style,
@@ -11,6 +25,34 @@ const MapView = React.forwardRef(function MapView(props, ref) {
     testID = 'web-map-view',
     ...rest
   } = props;
+
+  const currentRegion = region || initialRegion || {
+    latitude: 13.0418,
+    longitude: 80.2341,
+    latitudeDelta: 0.05,
+    longitudeDelta: 0.05,
+  };
+
+  const zoom = 14;
+  const centerTileX = lon2tile(currentRegion.longitude, zoom);
+  const centerTileY = lat2tile(currentRegion.latitude, zoom);
+
+  // 3x3 surrounding tiles
+  const tiles = [];
+  const minTx = Math.floor(centerTileX) - 1;
+  const maxTx = Math.floor(centerTileX) + 1;
+  const minTy = Math.floor(centerTileY) - 1;
+  const maxTy = Math.floor(centerTileY) + 1;
+
+  for (let ty = minTy; ty <= maxTy; ty++) {
+    for (let tx = minTx; tx <= maxTx; tx++) {
+      const sub = ['a', 'b', 'c', 'd'][(tx + ty) % 4];
+      const uri = `https://${sub}.basemaps.cartocdn.com/rastertiles/dark_all/${zoom}/${tx}/${ty}@2x.png`;
+      const left = (tx - centerTileX) * TILE_SIZE + 180;
+      const top = (ty - centerTileY) * TILE_SIZE + 180;
+      tiles.push({ key: `${tx}-${ty}`, uri, left, top });
+    }
+  }
 
   React.useImperativeHandle(ref, () => ({
     animateToRegion: (r, duration) => {},
@@ -36,23 +78,32 @@ const MapView = React.forwardRef(function MapView(props, ref) {
       testID: testID,
       ...rest,
     },
-    // Stylized Dark Map Grid Background
+    // Real Dark Matter Street Tiles Layer
     React.createElement(
       View,
-      { style: styles.gridOverlay, pointerEvents: 'none' },
-      React.createElement(View, { style: [styles.roadLine, styles.roadH1] }),
-      React.createElement(View, { style: [styles.roadLine, styles.roadH2] }),
-      React.createElement(View, { style: [styles.roadLine, styles.roadH3] }),
-      React.createElement(View, { style: [styles.roadLine, styles.roadV1] }),
-      React.createElement(View, { style: [styles.roadLine, styles.roadV2] }),
-      React.createElement(View, { style: [styles.roadLine, styles.roadV3] }),
+      { style: styles.tilesLayer, pointerEvents: 'none' },
+      tiles.map((tile) =>
+        React.createElement(Image, {
+          key: tile.key,
+          source: { uri: tile.uri },
+          style: [
+            styles.tileImage,
+            { left: tile.left, top: tile.top, width: TILE_SIZE, height: TILE_SIZE },
+          ],
+          resizeMode: 'cover',
+        })
+      ),
+      // Subtle ambient vignette
+      React.createElement(View, { style: styles.vignetteOverlay }),
+      // Ola/Rapido Live GPS Badge
       React.createElement(
         View,
         { style: styles.mapBadge },
+        React.createElement(View, { style: styles.statusDot }),
         React.createElement(
           Text,
           { style: styles.mapBadgeText },
-          '🗺️ Bengaluru Central • GPS Live'
+          'GPS Live • Anna Salai, Chennai'
         )
       )
     ),
@@ -148,6 +199,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  tilesLayer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#0B111E',
+    overflow: 'hidden',
+  },
+  tileImage: {
+    position: 'absolute',
+    backgroundColor: '#0B111E',
+  },
+  vignetteOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10, 17, 30, 0.25)',
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+    marginRight: 6,
+  },
   gridOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#0F172A',
@@ -213,12 +284,16 @@ const styles = StyleSheet.create({
   },
   mapBadge: {
     position: 'absolute',
-    top: 16,
-    left: 16,
-    backgroundColor: '#00000088',
-    paddingVertical: 4,
+    top: 14,
+    left: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    paddingVertical: 5,
     paddingHorizontal: 10,
-    borderRadius: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   mapBadgeText: {
     color: '#94A3B8',

@@ -142,35 +142,8 @@ export const Slide2Panel: React.FC<PanelProps> = ({ height, reduceMotion = false
 
   return (
     <View style={[styles.panelBase, styles.darkMapPanel, { height }]}>
-      {/* Map Graphics */}
-      <View
-        style={StyleSheet.absoluteFill}
-        accessible={Platform.OS === 'web' ? undefined : false}
-        aria-hidden={true}
-        importantForAccessibility="no-hide-descendants"
-      >
-        <Svg width="100%" height="100%" viewBox="0 0 360 390" preserveAspectRatio="xMidYMid meet">
-          {/* Grid Road Lines */}
-          <Line x1="100" y1="0" x2="100" y2="390" stroke="#253548" strokeWidth="12" />
-          <Line x1="260" y1="0" x2="260" y2="390" stroke="#253548" strokeWidth="16" />
-          <Line x1="0" y1="120" x2="360" y2="120" stroke="#253548" strokeWidth="14" />
-          <Line x1="0" y1="280" x2="360" y2="280" stroke="#253548" strokeWidth="12" />
-          {/* Blue Route */}
-          <Path
-            d="M 76 290 L 140 220 L 220 185 L 280 84"
-            fill="none"
-            stroke={colors.routeBlue}
-            strokeWidth="6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          {/* Start Point */}
-          <Circle cx="76" cy="290" r="14" fill={colors.white} />
-          <Circle cx="76" cy="290" r="8" fill={colors.routeBlue} />
-          {/* End Point */}
-          <Circle cx="280" cy="84" r="12" fill={colors.danger} />
-        </Svg>
-      </View>
+      {/* Real Rapido/Ola Dark Navigation Map */}
+      <RealDarkMap style={StyleSheet.absoluteFill} />
 
       {/* Accessible Floating Chips */}
       <Animated.View
