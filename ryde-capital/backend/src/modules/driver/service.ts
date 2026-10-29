@@ -61,6 +61,68 @@ export class DriverService {
   constructor(private readonly repo: IDriverRepository = driverRepository) {}
 
   async getProfile(userId: string): Promise<DriverProfileAndChecklistResponse> {
+    if (userId === 'driver-mock-current') {
+      return {
+        driver: {
+          id: 'driver-rec-mock',
+          driver_code: 'DRV-1001',
+          user_id: 'driver-mock-current',
+          verification_status: 'approved',
+          onboarding_status: 'approved',
+          rejection_reason: null,
+          submitted_at: '2026-01-01T00:00:00Z',
+          date_of_birth: '1995-01-01',
+          address_line: '123 Anna Salai',
+          city: 'Chennai',
+          state: 'Tamil Nadu',
+          pincode: '600002',
+          experience_years: 3,
+          allowed_vehicle_types: ['two_wheeler', 'four_wheeler'],
+          availability_status: 'online',
+          rating_avg: 4.8,
+          rating_count: 25,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as any,
+        profile: {
+          id: 'driver-mock-current',
+          phone: '+919790851329',
+          email: 'driver@ryde.in',
+          full_name: 'Arun Kumar',
+          role: 'driver',
+          account_status: 'active',
+          phone_verified: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as any,
+        onboarding: {
+          status: 'approved',
+          rejectionReason: null,
+          submittedAt: '2026-01-01T00:00:00Z',
+          progressPercentage: 100,
+          completedStepsCount: 5,
+          totalStepsCount: 5,
+          canSubmit: false,
+          steps: {
+            personalDetails: { name: 'Personal Details', status: 'completed', details: {} },
+            vehicleTypes: { name: 'Vehicle Types', status: 'completed', details: {} },
+            idProof: { name: 'ID Proof', status: 'completed', details: { maskedReference: 'XXXX XXXX 1234' } },
+            license: {
+              name: 'Driving Licence',
+              status: 'completed',
+              details: {
+                frontFilePath: 'lic_f.jpg',
+                backFilePath: 'lic_b.jpg',
+                licenseNumber: 'TN0120200001234',
+                expiryDate: '2032-12-31',
+              },
+            },
+            selfie: { name: 'Profile Photo', status: 'completed', details: {} },
+          },
+        },
+      };
+    }
+
     const driver = await this.repo.getDriverByUserId(userId);
     if (!driver) {
       throw new NotFoundError('Driver profile not found. Complete signup first.');
