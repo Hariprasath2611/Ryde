@@ -93,7 +93,7 @@ describe('Language Selection & Regional i18n Suite', () => {
       const savedLocale = await AsyncStorage.getItem(LOCALE_STORAGE_KEY);
       expect(savedLocale).toBe('ta');
       expect(useI18nStore.getState().locale).toBe('ta');
-      expect(mockReplace).toHaveBeenCalledWith('/(auth)/welcome');
+      expect(mockReplace).toHaveBeenCalledWith('/(auth)/login');
     });
 
     it('navigates back when accessed from profile settings mode', async () => {
