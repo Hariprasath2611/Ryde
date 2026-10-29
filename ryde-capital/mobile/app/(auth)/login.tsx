@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,21 +7,33 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, typography } from '../../src/theme/tokens';
 import { ScreenBackground } from '../../src/components/ScreenBackground';
 import { Header } from '../../src/components/Header';
-import { PhoneField, validateIndianPhone } from '../../src/components/PhoneField';
+import { PhoneField } from '../../src/components/PhoneField';
 import { Button } from '../../src/components/Button';
-import { en } from '../../src/i18n/en';
+import { useTranslation } from '../../src/i18n';
+import { LOCALE_STORAGE_KEY } from '../../src/store/useI18nStore';
 import { useAuth } from '../../src/store/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { sendOtp } = useAuth();
+  const { t } = useTranslation();
 
   const [phone, setPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Guard: User must select language before login
+  useEffect(() => {
+    AsyncStorage.getItem(LOCALE_STORAGE_KEY).then((saved) => {
+      if (!saved) {
+        router.replace('/(auth)/language');
+      }
+    });
+  }, [router]);
 
   const handleSendCode = async () => {
     const cleaned = phone.replace(/\D/g, '');
@@ -69,8 +81,8 @@ export default function LoginScreen() {
       >
         <View style={styles.container}>
           <View style={styles.content}>
-            <Text style={styles.title}>{en.login.title}</Text>
-            <Text style={styles.subtitle}>{en.login.subtitle}</Text>
+            <Text style={styles.title}>{t.login.title}</Text>
+            <Text style={styles.subtitle}>{t.login.subtitle}</Text>
 
             <View style={styles.fieldSection}>
               <PhoneField
@@ -83,19 +95,19 @@ export default function LoginScreen() {
                 }}
                 error={error || undefined}
               />
-              <Text style={styles.caption}>{en.login.caption}</Text>
+              <Text style={styles.caption}>{t.login.caption}</Text>
             </View>
           </View>
 
           <View style={styles.footer}>
             <Button
               testID="send-otp-button"
-              title={en.login.sendCode}
+              title={t.login.sendCode}
               variant="amber"
               onPress={handleSendCode}
               loading={isLoading}
               disabled={phone.length === 0}
-              accessibilityLabel="Send code"
+              accessibilityLabel={t.login.sendCode}
             />
           </View>
         </View>
