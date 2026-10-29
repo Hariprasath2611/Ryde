@@ -1,7 +1,9 @@
 // ryde-capital/mobile/src/i18n/index.ts
 // Multi-regional internationalization (i18n) for Ryde Capital
-// Supported locales: Tamil (ta-IN), English (en-IN), Hindi (hi-IN), Telugu (te-IN)
+// Supported locales: Tamil (ta-IN, default), English (en-IN), Hindi (hi-IN), Telugu (te-IN)
 
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
 import { useI18nStore, SupportedLocale } from '../store/useI18nStore';
 import { en } from './en';
 import { ta } from './ta';
@@ -18,6 +20,24 @@ export const translations: Record<SupportedLocale, TranslationSchema> = {
   hi,
   te,
 };
+
+// Initialize i18next instance
+if (!i18n.isInitialized) {
+  i18n.use(initReactI18next).init({
+    compatibilityJSON: 'v4',
+    resources: {
+      en: { translation: en },
+      ta: { translation: ta },
+      hi: { translation: hi },
+      te: { translation: te },
+    },
+    lng: useI18nStore.getState().locale || 'ta',
+    fallbackLng: 'en',
+    interpolation: {
+      escapeValue: false,
+    },
+  });
+}
 
 export interface LanguageOption {
   id: SupportedLocale;
@@ -79,6 +99,36 @@ export function getLocaleDisplayName(locale: SupportedLocale): string {
 }
 
 /**
+ * Format currency with Indian lakh/crore grouping and ₹ symbol with Latin digits
+ */
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+/**
+ * Format numbers with Indian en-IN grouping with Latin digits
+ */
+export function formatNumber(value: number): string {
+  return new Intl.NumberFormat('en-IN').format(value);
+}
+
+/**
+ * Format dates with en-IN locale
+ */
+export function formatDate(date: Date | string | number, options?: Intl.DateTimeFormatOptions): string {
+  const d = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
+  return new Intl.DateTimeFormat('en-IN', options || {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(d);
+}
+
+/**
  * React hook for dynamic localization.
  * Automatically triggers re-render across screens when locale changes.
  */
@@ -91,6 +141,10 @@ export function useTranslation() {
     t,
     locale,
     setLocale,
+    formatCurrency,
+    formatNumber,
+    formatDate,
+    i18n,
   };
 }
 
@@ -100,5 +154,6 @@ export function t(): TranslationSchema {
   return translations[current] || translations.en;
 }
 
-export { en, ta, hi, te };
+export { en, ta, hi, te, i18n };
 export default en;
+
