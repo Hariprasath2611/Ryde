@@ -57,7 +57,6 @@ export const MapViewWrapper: React.FC<MapViewWrapperProps> = memo(({
         showRoute={true}
         showPickup={true}
         theme="voyager"
-        statusText="GPS Live • Accurate Lock"
         style={StyleSheet.absoluteFill}
       />
     </View>

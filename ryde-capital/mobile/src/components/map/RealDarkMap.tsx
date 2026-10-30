@@ -84,7 +84,6 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
   routeCoordinates = DEFAULT_ROUTE,
   showRoute = true,
   showPickup = true,
-  statusText = 'GPS Live • Anna Salai, Chennai',
   theme = 'voyager',
   apiKey = DEFAULT_CARTO_KEY,
   style,
@@ -320,25 +319,6 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
           pointerEvents="none"
         />
       ) : null}
-
-      {/* 4. Live Navigation Status Badge (Top-Left) */}
-      {statusText ? (
-        <View style={[styles.statusBadge, isBright && styles.brightStatusBadge]} pointerEvents="none">
-          <View style={styles.statusDot} />
-          <Text style={[styles.statusText, isBright && styles.brightStatusText]}>{statusText}</Text>
-        </View>
-      ) : null}
-
-      {/* 6. Compass / North Indicator (Top-Right) */}
-      <View style={[styles.compassBadge, isBright && styles.brightCompassBadge]} pointerEvents="none">
-        <Text style={[styles.compassText, isBright && styles.brightCompassText]}>🧭 N</Text>
-      </View>
-
-      {/* 7. Live Speed / Traffic Pill (Bottom-Left) */}
-      <View style={[styles.trafficPill, isBright && styles.brightTrafficPill]} pointerEvents="none">
-        <Text style={[styles.trafficSpeed, isBright && styles.brightTrafficSpeed]}>38</Text>
-        <Text style={[styles.trafficUnit, isBright && styles.brightTrafficUnit]}>km/h</Text>
-      </View>
     </View>
   );
 };
@@ -369,43 +349,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0, 0, 0, 0.02)',
   },
-  brightStatusBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderColor: '#E2E8F0',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-  },
-  brightStatusText: {
-    color: '#0F172A',
-    fontWeight: '700',
-  },
-  brightCompassBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderColor: '#E2E8F0',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-  },
-  brightCompassText: {
-    color: '#334155',
-  },
-  brightTrafficPill: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderColor: '#BFDBFE',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-  },
-  brightTrafficSpeed: {
-    color: '#1D4ED8',
-  },
-  brightTrafficUnit: {
-    color: '#64748B',
-  },
   radarWave: {
     position: 'absolute',
     width: 40,
@@ -414,73 +357,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#10B981',
     backgroundColor: 'rgba(16, 185, 129, 0.25)',
-  },
-  statusBadge: {
-    position: 'absolute',
-    top: 14,
-    left: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    backdropFilter: 'blur(8px)' as any,
-  },
-  statusDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: '#10B981',
-    marginRight: 6,
-  },
-  statusText: {
-    color: '#E2E8F0',
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.2,
-  },
-  compassBadge: {
-    position: 'absolute',
-    top: 14,
-    right: 14,
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  compassText: {
-    color: '#94A3B8',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  trafficPill: {
-    position: 'absolute',
-    bottom: 14,
-    left: 14,
-    backgroundColor: 'rgba(15, 23, 42, 0.9)',
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    paddingVertical: 4,
-    paddingHorizontal: 9,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(37, 99, 235, 0.4)',
-  },
-  trafficSpeed: {
-    color: '#38BDF8',
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  trafficUnit: {
-    color: '#94A3B8',
-    fontSize: 9,
-    fontWeight: '600',
-    marginLeft: 3,
   },
 });
 
