@@ -14,6 +14,7 @@ export interface MapViewWrapperProps {
   style?: ViewStyle;
   height?: number;
   fullScreen?: boolean;
+  showDrop?: boolean;
 }
 
 export const MapViewWrapper: React.FC<MapViewWrapperProps> = memo(({
@@ -22,6 +23,7 @@ export const MapViewWrapper: React.FC<MapViewWrapperProps> = memo(({
   style,
   height = 300,
   fullScreen = false,
+  showDrop,
 }) => {
   const center = {
     latitude: (origin.latitude + destination.latitude) / 2,
@@ -56,6 +58,7 @@ export const MapViewWrapper: React.FC<MapViewWrapperProps> = memo(({
         routeCoordinates={routeCoords}
         showRoute={true}
         showPickup={true}
+        showDrop={showDrop ?? Boolean(destination)}
         theme="voyager"
         style={StyleSheet.absoluteFill}
       />
