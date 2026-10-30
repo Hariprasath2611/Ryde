@@ -5,8 +5,8 @@ import { Platform } from 'react-native';
 import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
 
-// Static sound asset generated for driver alerts
-const ORDER_ALERT_SOUND = require('../../assets/sounds/incoming_order.wav');
+// Static sound asset specified for driver alerts
+const ORDER_ALERT_SOUND = require('../../assets/sounds/sound.mp3');
 
 class OrderSoundService {
   private sound: Audio.Sound | null = null;
@@ -26,7 +26,7 @@ class OrderSoundService {
     // 1. Trigger immediate haptic pulse
     this.triggerHaptic();
 
-    // Setup periodic haptic pulse every 1.5 seconds while alert is active
+    // Setup periodic haptic pulse while alert is active on mobile
     if (!this.hapticInterval && Platform.OS !== 'web') {
       this.hapticInterval = setInterval(() => {
         if (!this.isPlaying) return;
@@ -34,12 +34,8 @@ class OrderSoundService {
       }, 1500);
     }
 
-    // 2. Play Audio depending on Platform
-    if (Platform.OS === 'web') {
-      this.playWebAlert();
-    } else {
-      await this.playNativeAlert();
-    }
+    // 2. Play sound.mp3
+    await this.playSound();
   }
 
   /**
@@ -59,7 +55,7 @@ class OrderSoundService {
       this.webAudioInterval = null;
     }
 
-    // Stop Native Sound
+    // Stop Sound
     if (this.sound) {
       try {
         await this.sound.stopAsync();
@@ -82,17 +78,19 @@ class OrderSoundService {
   }
 
   /**
-   * Native audio playback via expo-av with background/silent mode support
+   * Audio playback via expo-av with background/silent mode support on native and web
    */
-  private async playNativeAlert(): Promise<void> {
+  private async playSound(): Promise<void> {
     try {
-      // Configure audio session so alert sounds play even in silent mode
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: true,
-        shouldDuckAndroid: true,
-        playThroughEarpieceAndroid: false,
-      });
+      if (Platform.OS !== 'web') {
+        // Configure audio session so alert sounds play even in silent mode
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        });
+      }
 
       const { sound } = await Audio.Sound.createAsync(
         ORDER_ALERT_SOUND,
@@ -104,6 +102,7 @@ class OrderSoundService {
       );
 
       this.sound = sound;
+
       if (!this.isPlaying) {
         // Stop if stopOrderAlert was called during async initialization
         await sound.stopAsync();
@@ -111,15 +110,18 @@ class OrderSoundService {
         this.sound = null;
       }
     } catch (err) {
-      console.warn('[OrderSound] Native audio playback warning:', err);
+      console.warn('[OrderSound] Audio playback warning:', err);
+      // Fallback on web if browser autoplay restrictions blocked initial file load
+      if (Platform.OS === 'web' && this.isPlaying) {
+        this.playWebSynthFallback();
+      }
     }
   }
 
   /**
-   * Web Audio API synthesized alert chime (Ascending 3-tone chime: 784Hz -> 1046Hz -> 1318Hz)
-   * Guaranteed zero latency and no CORS/network issues in browser environments.
+   * Web Audio API synthesized alert chime fallback if browser blocks file playback
    */
-  private playWebAlert(): void {
+  private playWebSynthFallback(): void {
     try {
       const AudioCtx =
         typeof window !== 'undefined'
@@ -153,7 +155,6 @@ class OrderSoundService {
           osc.type = 'triangle';
           osc.frequency.setValueAtTime(freq, time);
 
-          // Envelope: rapid attack & gentle decay
           gain.gain.setValueAtTime(0.001, time);
           gain.gain.exponentialRampToValueAtTime(0.35, time + 0.02);
           gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
@@ -166,16 +167,14 @@ class OrderSoundService {
         });
       };
 
-      // Play first sequence immediately
       playChimeSequence();
 
-      // Repeat chime every 1.5 seconds while waiting for driver action
       this.webAudioInterval = setInterval(() => {
         if (!this.isPlaying) return;
         playChimeSequence();
       }, 1500);
     } catch (err) {
-      console.warn('[OrderSound] Web Audio alert warning:', err);
+      console.warn('[OrderSound] Web Audio fallback warning:', err);
     }
   }
 
@@ -189,4 +188,3 @@ class OrderSoundService {
 }
 
 export const orderSoundService = new OrderSoundService();
-
