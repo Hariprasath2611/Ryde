@@ -342,6 +342,15 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
             </G>
           ) : null}
 
+          {/* Destination Drop Pin */}
+          {showDrop && dropPos ? (
+            <G transform={`translate(${dropPos.x}, ${dropPos.y})`}>
+              <Circle cx={0} cy={0} r={14} fill="#EF4444" fillOpacity={0.25} />
+              <Circle cx={0} cy={0} r={9} fill="#FFFFFF" />
+              <Circle cx={0} cy={0} r={5} fill="#EF4444" />
+            </G>
+          ) : null}
+
         </Svg>
       </View>
 
