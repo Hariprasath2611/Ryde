@@ -84,6 +84,7 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
   routeCoordinates = DEFAULT_ROUTE,
   showRoute = true,
   showPickup = true,
+  showDrop = false,
   theme = 'voyager',
   apiKey = DEFAULT_CARTO_KEY,
   style,
@@ -126,21 +127,60 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
 
   const { width, height } = dimensions;
 
+  // Auto-fit center and zoom so the entire route fits neatly inside container
+  const { effectiveCenter, effectiveZoom } = useMemo(() => {
+    const points = (routeCoordinates && routeCoordinates.length >= 2)
+      ? routeCoordinates
+      : [pickup, drop].filter(Boolean);
+
+    if (points.length < 2) {
+      return { effectiveCenter: center, effectiveZoom: zoom };
+    }
+
+    let minLat = points[0].latitude;
+    let maxLat = points[0].latitude;
+    let minLon = points[0].longitude;
+    let maxLon = points[0].longitude;
+
+    points.forEach((pt) => {
+      if (pt.latitude < minLat) minLat = pt.latitude;
+      if (pt.latitude > maxLat) maxLat = pt.latitude;
+      if (pt.longitude < minLon) minLon = pt.longitude;
+      if (pt.longitude > maxLon) maxLon = pt.longitude;
+    });
+
+    const cLat = (minLat + maxLat) / 2;
+    const cLon = (minLon + maxLon) / 2;
+
+    const latDelta = Math.max(0.005, (maxLat - minLat) * 1.6);
+    const lonDelta = Math.max(0.005, (maxLon - minLon) * 1.6);
+    const maxDelta = Math.max(latDelta, lonDelta);
+
+    const span = Math.min(width, height);
+    const calculatedZoom = Math.floor(Math.log2((360 / maxDelta) * (span / TILE_SIZE)));
+    const finalZoom = Math.max(10, Math.min(16, calculatedZoom));
+
+    return {
+      effectiveCenter: { latitude: cLat, longitude: cLon },
+      effectiveZoom: finalZoom,
+    };
+  }, [routeCoordinates, pickup, drop, width, height, center, zoom]);
+
   // Calculate center tile coordinates
-  const centerTileX = lon2tile(center.longitude, zoom);
-  const centerTileY = lat2tile(center.latitude, zoom);
+  const centerTileX = lon2tile(effectiveCenter.longitude, effectiveZoom);
+  const centerTileY = lat2tile(effectiveCenter.latitude, effectiveZoom);
 
   // Map arbitrary LatLng to Viewport (x, y) pixels
   const toPixel = useMemo(() => {
     return (coord: LatLng) => {
-      const tx = lon2tile(coord.longitude, zoom);
-      const ty = lat2tile(coord.latitude, zoom);
+      const tx = lon2tile(coord.longitude, effectiveZoom);
+      const ty = lat2tile(coord.latitude, effectiveZoom);
       return {
         x: Math.round((tx - centerTileX) * TILE_SIZE + width / 2),
         y: Math.round((ty - centerTileY) * TILE_SIZE + height / 2),
       };
     };
-  }, [centerTileX, centerTileY, zoom, width, height]);
+  }, [centerTileX, centerTileY, effectiveZoom, width, height]);
 
   // Compute bounding box tiles needed to fill the viewport
   const tiles = useMemo(() => {
@@ -153,7 +193,7 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
     const maxTy = Math.floor(centerTileY + halfH / TILE_SIZE) + 1;
 
     const result = [];
-    const maxTileIndex = Math.pow(2, zoom) - 1;
+    const maxTileIndex = Math.pow(2, effectiveZoom) - 1;
 
     for (let ty = minTy; ty <= maxTy; ty++) {
       if (ty < 0 || ty > maxTileIndex) continue;
@@ -169,11 +209,11 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
         const sub = subdomains[(tx + ty) % 4];
         const stylePath = theme === 'voyager' ? 'voyager' : 'dark_all';
         const uri = apiKey
-          ? `https://${sub}.basemaps.cartocdn.com/rastertiles/${stylePath}/${zoom}/${wrappedTx}/${ty}@2x.png?key=${apiKey}`
-          : `https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/${zoom}/${ty}/${wrappedTx}`;
+          ? `https://${sub}.basemaps.cartocdn.com/rastertiles/${stylePath}/${effectiveZoom}/${wrappedTx}/${ty}@2x.png?key=${apiKey}`
+          : `https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/${effectiveZoom}/${ty}/${wrappedTx}`;
 
         result.push({
-          key: `${zoom}-${wrappedTx}-${ty}`,
+          key: `${effectiveZoom}-${wrappedTx}-${ty}`,
           uri,
           left,
           top,
@@ -181,7 +221,7 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
       }
     }
     return result;
-  }, [centerTileX, centerTileY, zoom, width, height, theme, apiKey]);
+  }, [centerTileX, centerTileY, effectiveZoom, width, height, theme, apiKey]);
 
   // Project route points to SVG coordinate path
   const routePoints = useMemo(() => {
@@ -196,6 +236,7 @@ export const RealDarkMap: React.FC<RealDarkMapProps> = ({
   }, [routePoints]);
 
   const pickupPos = useMemo(() => toPixel(pickup), [toPixel, pickup]);
+  const dropPos = useMemo(() => (drop ? toPixel(drop) : null), [toPixel, drop]);
 
   // Interpolated animation values for radar wave
   const radarScale = pulseAnim.interpolate({
