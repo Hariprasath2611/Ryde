@@ -60,7 +60,13 @@ export default function OfferScreen() {
     <ScreenBackground deco={false} edges={['top', 'left', 'right']}>
       <View style={styles.container}>
         {/* Map Header Preview */}
-        <MapViewWrapper height={260} style={styles.mapPreview} />
+        <MapViewWrapper
+          height={260}
+          origin={offer.pickup}
+          destination={offer.drop}
+          showDrop={true}
+          style={styles.mapPreview}
+        />
 
         {/* Offer Details Card */}
         <Card variant="card" style={styles.offerCard}>

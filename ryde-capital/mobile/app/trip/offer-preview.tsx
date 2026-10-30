@@ -44,7 +44,13 @@ export default function OfferPreviewScreen() {
 
       <View style={styles.container}>
         {/* Full-screen map */}
-        <MapViewWrapper fullScreen style={styles.mapContainer} />
+        <MapViewWrapper
+          fullScreen
+          origin={offer.pickup}
+          destination={offer.drop}
+          showDrop={true}
+          style={styles.mapContainer}
+        />
 
         {/* Floating Bottom Card */}
         <View style={styles.bottomOverlay}>

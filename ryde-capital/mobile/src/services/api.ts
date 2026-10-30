@@ -104,6 +104,20 @@ function getMockData<T>(endpoint: string): T | undefined {
     return { success: true } as unknown as T;
   }
 
+  if (path.includes('/assignments') && path.endsWith('/route')) {
+    return {
+      data: {
+        distanceMeters: 4500,
+        durationSeconds: 720,
+        pickupAddress: '100 Feet Rd, Indiranagar',
+        destinationAddress: 'Sony Signal, Koramangala',
+        pickupCoords: { latitude: 12.9716, longitude: 77.5946 },
+        destinationCoords: { latitude: 12.9352, longitude: 77.6190 },
+        polyline: 'oodnAgerxMfh@_g@n}@_q@n}@g^f|@g^',
+      },
+    } as unknown as T;
+  }
+
   return undefined;
 }
 

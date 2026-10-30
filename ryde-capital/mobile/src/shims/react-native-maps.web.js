@@ -16,6 +16,13 @@ function lat2tile(lat, zoom) {
   );
 }
 
+function delta2zoom(latDelta, lonDelta, mapHeight, mapWidth) {
+  const delta = Math.max(latDelta || 0.015, lonDelta || 0.015);
+  const span = Math.min(mapHeight || 390, mapWidth || 360);
+  const z = Math.floor(Math.log2((360 / delta) * (span / TILE_SIZE)));
+  return Math.max(10, Math.min(17, z));
+}
+
 const MapContext = React.createContext({
   center: { latitude: 13.0418, longitude: 80.2341 },
   zoom: 14,
@@ -77,7 +84,39 @@ const MapView = React.forwardRef(function MapView(props, ref) {
     animateCamera: (camera, options) => {},
     fitToElements: (options) => {},
     fitToSuppliedMarkers: (markers, options) => {},
-    fitToCoordinates: (coordinates, options) => {},
+    fitToCoordinates: (coords, options) => {
+      if (!coords || !Array.isArray(coords) || coords.length === 0) return;
+      let minLat = 90;
+      let maxLat = -90;
+      let minLng = 180;
+      let maxLng = -180;
+
+      coords.forEach((c) => {
+        if (!c) return;
+        const lat = c.latitude;
+        const lng = c.longitude;
+        if (typeof lat === 'number' && typeof lng === 'number') {
+          if (lat < minLat) minLat = lat;
+          if (lat > maxLat) maxLat = lat;
+          if (lng < minLng) minLng = lng;
+          if (lng > maxLng) maxLng = lng;
+        }
+      });
+
+      if (minLat > maxLat || minLng > maxLng) return;
+
+      const centerLat = (minLat + maxLat) / 2;
+      const centerLng = (minLng + maxLng) / 2;
+      const latDelta = Math.max(0.015, (maxLat - minLat) * 1.6);
+      const lngDelta = Math.max(0.015, (maxLng - minLng) * 1.6);
+
+      setActiveRegion({
+        latitude: centerLat,
+        longitude: centerLng,
+        latitudeDelta: latDelta,
+        longitudeDelta: lngDelta,
+      });
+    },
     setMapBoundaries: (northEast, southWest) => {},
     setCamera: (camera) => {},
     getCamera: async () => ({}),
@@ -89,7 +128,12 @@ const MapView = React.forwardRef(function MapView(props, ref) {
     coordinateForPoint: async (point) => ({ latitude: 0, longitude: 0 }),
   }));
 
-  const zoom = 14;
+  const zoom = delta2zoom(
+    activeRegion.latitudeDelta,
+    activeRegion.longitudeDelta,
+    dimensions.height,
+    dimensions.width
+  );
   const { width, height } = dimensions;
   const centerTileX = lon2tile(activeRegion.longitude, zoom);
   const centerTileY = lat2tile(activeRegion.latitude, zoom);
