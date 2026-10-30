@@ -51,3 +51,21 @@ jest.mock('expo-font', () => ({
   useFonts: jest.fn(() => [true, null]),
 }));
 
+jest.mock('expo-av', () => ({
+  Audio: {
+    Sound: {
+      createAsync: jest.fn(async () => ({
+        sound: {
+          playAsync: jest.fn(async () => {}),
+          stopAsync: jest.fn(async () => {}),
+          unloadAsync: jest.fn(async () => {}),
+          setIsLoopingAsync: jest.fn(async () => {}),
+          setVolumeAsync: jest.fn(async () => {}),
+        },
+        status: { isLoaded: true },
+      })),
+    },
+    setAudioModeAsync: jest.fn(async () => {}),
+  },
+}));
+

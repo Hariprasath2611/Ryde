@@ -13,6 +13,7 @@ import {
   mockActiveTrip,
   mockNotifications,
 } from '../services/api/mock/data';
+import { orderSoundService } from '../services/orderSound';
 
 const TRIP_STORAGE_KEY = 'ryde_active_trip_state';
 const SESSION_STORAGE_KEY = 'ryde_session_token';
@@ -162,6 +163,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   },
 
   acceptOffer: async (offer) => {
+    orderSoundService.stopOrderAlert().catch(() => {});
     const trip: TripRecord = {
       ...mockActiveTrip,
       id: offer.id,
@@ -194,6 +196,7 @@ export const useAppStore = create<AppStoreState>((set, get) => ({
   },
 
   rejectOffer: () => {
+    orderSoundService.stopOrderAlert().catch(() => {});
     set({ currentOffer: null });
   },
 

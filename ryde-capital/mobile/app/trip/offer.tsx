@@ -12,6 +12,7 @@ import { en } from '../../src/i18n/en';
 import { formatINR } from '../../src/utils/format';
 import { useAppStore } from '../../src/store/useAppStore';
 import { createMockOffer } from '../../src/services/api/mock/data';
+import { orderSoundService } from '../../src/services/orderSound';
 
 export default function OfferScreen() {
   const router = useRouter();
@@ -24,17 +25,29 @@ export default function OfferScreen() {
 
   const offer = currentOffer || createMockOffer(25);
 
+  // Play sound alert while offer is incoming/pending action
+  useEffect(() => {
+    orderSoundService.startOrderAlert().catch(() => {});
+
+    return () => {
+      orderSoundService.stopOrderAlert().catch(() => {});
+    };
+  }, []);
+
   const handleExpire = () => {
+    orderSoundService.stopOrderAlert().catch(() => {});
     rejectOffer();
     router.replace('/(tabs)/home');
   };
 
   const handleReject = () => {
+    orderSoundService.stopOrderAlert().catch(() => {});
     rejectOffer();
     router.replace('/(tabs)/home');
   };
 
   const handleAccept = async () => {
+    orderSoundService.stopOrderAlert().catch(() => {});
     const trip = await acceptOffer(offer);
     router.replace(`/trip/${trip.id}/to-pickup` as any);
   };

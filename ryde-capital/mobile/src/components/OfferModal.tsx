@@ -15,6 +15,7 @@ import * as Haptics from 'expo-haptics';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { apiClient } from '../services/api';
 import { RoutePreviewModal } from './RoutePreviewModal';
+import { orderSoundService } from '../services/orderSound';
 
 export interface OfferAssignment {
   id: string;
@@ -50,15 +51,17 @@ export function OfferModal({
   const [submitting, setSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(20);
 
-  // Trigger haptic vibration on offer arrival
+  // Play sound & trigger haptic vibration on offer arrival
   useEffect(() => {
     if (visible && offer) {
-      try {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      } catch (_e) {
-        // Ignore haptics errors in simulator/jest
-      }
+      orderSoundService.startOrderAlert().catch(() => {});
+    } else {
+      orderSoundService.stopOrderAlert().catch(() => {});
     }
+
+    return () => {
+      orderSoundService.stopOrderAlert().catch(() => {});
+    };
   }, [visible, offer?.id]);
 
   // Synchronize countdown with server expires_at
@@ -99,6 +102,7 @@ export function OfferModal({
   const handleAccept = async () => {
     if (submitting) return;
     setSubmitting(true);
+    orderSoundService.stopOrderAlert().catch(() => {});
 
     try {
       const res = await apiClient<{ data: { status: string; tripId: string } }>(
@@ -129,6 +133,7 @@ export function OfferModal({
   const handleReject = async (reason = 'Driver declined') => {
     if (submitting) return;
     setSubmitting(true);
+    orderSoundService.stopOrderAlert().catch(() => {});
 
     try {
       await apiClient(`/assignments/${offer.id}/reject`, {
